@@ -1,0 +1,6 @@
+@BloomyBE_HostAddress = http://localhost:5200
+
+GET {{BloomyBE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
