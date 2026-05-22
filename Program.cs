@@ -5,7 +5,6 @@ using Bloomy.Models;
 using Bloomy.Services;
 using BloomyBE.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -35,11 +34,6 @@ builder.Services.AddDbContext<BloomyDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString"));
 });
-
-// ====================== IDENTITY ======================
-builder.Services.AddIdentity<User, IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<BloomyDbContext>()
-    .AddDefaultTokenProviders();
 
 // ====================== JWT AUTHENTICATION ======================
 var jwtSettings = builder.Configuration.GetSection("Jwt");
