@@ -1,4 +1,5 @@
 ﻿using Bloomy.DTOs.Auth;
+using Bloomy.Models.Enums;
 using BloomyBE.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
@@ -19,6 +20,13 @@ namespace BloomyBE.Controllers
             _authService = authService;
         }
 
+        private static string RoleToClaimName(UserRole role) => role switch
+        {
+            UserRole.ShopOwner => "ShopOwner",
+            UserRole.Admin => "Admin",
+            _ => "Customer"
+        };
+
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
@@ -35,7 +43,7 @@ namespace BloomyBE.Controllers
                 {
                     new Claim(ClaimTypes.NameIdentifier, result.UserId.ToString()),
                     new Claim(ClaimTypes.Email, result.Email ?? string.Empty),
-                    new Claim(ClaimTypes.Role, result.Role.ToString()),
+                    new Claim(ClaimTypes.Role, RoleToClaimName(result.Role)),
                     new Claim("FullName", result.FullName ?? string.Empty)
                 };
 
@@ -72,7 +80,7 @@ namespace BloomyBE.Controllers
                 {
                     new Claim(ClaimTypes.NameIdentifier, result.UserId.ToString()),
                     new Claim(ClaimTypes.Email, result.Email ?? string.Empty),
-                    new Claim(ClaimTypes.Role, result.Role.ToString()),
+                    new Claim(ClaimTypes.Role, RoleToClaimName(result.Role)),
                     new Claim("FullName", result.FullName ?? string.Empty)
                 };
 
