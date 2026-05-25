@@ -15,20 +15,35 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // ==================== SERVICES ====================
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CORS
+// CORS — dev: cho phép localhost, 127.0.0.1 và IP LAN (Vite host 0.0.0.0)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "http://localhost:5175"
-            )
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin)) return false;
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+
+                if (builder.Environment.IsDevelopment())
+                {
+                    return uri.Host is "localhost"
+                        or "127.0.0.1"
+                        || uri.Host.StartsWith("192.168.")
+                        || uri.Host.StartsWith("10.");
+                }
+
+                return uri.Host is "localhost" or "127.0.0.1"
+                    && uri.Port is 5173 or 5174 or 5175;
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -48,7 +63,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/api/auth/login";
         options.Cookie.Name = "BloomyAuth";
         options.Cookie.HttpOnly = true;
-        // On development, allow the cookie in cross-origin fetches from the Vite dev server.
+        options.Cookie.Path = "/";
+        // Dev: HTTP + nhiều port (Vite proxy hoặc gọi thẳng 5200)
         if (builder.Environment.IsDevelopment())
         {
             options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
