@@ -28,7 +28,7 @@ namespace Bloomy.Data
         {
             base.OnModelCreating(modelBuilder);
 
-         
+            // Index
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
@@ -37,21 +37,7 @@ namespace Bloomy.Data
                 .HasIndex(u => u.PhoneNumber)
                 .IsUnique();
 
-          
-            modelBuilder.Entity<BrandSetting>()
-                .HasData(new BrandSetting { Id = 1 });
-
-            modelBuilder.Entity<EventType>().HasData(
-                new EventType { Id = 1, Name = "Sinh nhật", Description = "Trang trí tiệc sinh nhật", IconUrl = "" },
-                new EventType { Id = 2, Name = "Tiệc cưới", Description = "Trang trí tiệc cưới, lễ cưới", IconUrl = "" },
-                new EventType { Id = 3, Name = "Khai trương", Description = "Trang trí khai trương, kỷ niệm", IconUrl = "" },
-                new EventType { Id = 4, Name = "Hội nghị", Description = "Trang trí hội nghị, sự kiện doanh nghiệp", IconUrl = "" },
-                new EventType { Id = 5, Name = "Baby shower", Description = "Trang trí tiệc baby shower", IconUrl = "" }
-            );
-
-        
-
-        
+            // ==================== CONCEPT - ORDER ====================
             modelBuilder.Entity<Concept>()
                 .HasOne(c => c.Order)
                 .WithOne(o => o.Concept)
@@ -64,19 +50,22 @@ namespace Bloomy.Data
                 .HasForeignKey<Order>(o => o.ConceptId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+
             // User -> Order (Customer)
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Customer)
                 .WithMany(u => u.CustomerOrders)
                 .HasForeignKey(o => o.CustomerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);                    
 
             // User -> Order (ShopOwner)
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.ShopOwner)
                 .WithMany(u => u.ManagedOrders)
                 .HasForeignKey(o => o.ShopOwnerId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);                   
 
             // OrderStatusHistory
             modelBuilder.Entity<OrderStatusHistory>()
@@ -89,7 +78,8 @@ namespace Bloomy.Data
                 .HasOne(h => h.UpdatedBy)
                 .WithMany()
                 .HasForeignKey(h => h.UpdatedById)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);                   
 
             // Payment
             modelBuilder.Entity<Payment>()
@@ -109,7 +99,8 @@ namespace Bloomy.Data
                 .HasOne(r => r.Customer)
                 .WithMany()
                 .HasForeignKey(r => r.CustomerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);                   
 
             // ConceptImage
             modelBuilder.Entity<ConceptImage>()
@@ -130,13 +121,15 @@ namespace Bloomy.Data
                 .HasOne(cc => cc.Customer)
                 .WithMany(u => u.ConversationsAsCustomer)
                 .HasForeignKey(cc => cc.CustomerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);                    
 
             modelBuilder.Entity<ChatConversation>()
                 .HasOne(cc => cc.ShopOwner)
                 .WithMany(u => u.ConversationsAsShopOwner)
                 .HasForeignKey(cc => cc.ShopOwnerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);                    
 
             modelBuilder.Entity<ChatConversation>()
                 .HasOne(cc => cc.Order)
@@ -155,7 +148,8 @@ namespace Bloomy.Data
                 .HasOne(cm => cm.Sender)
                 .WithMany()
                 .HasForeignKey(cm => cm.SenderId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);                    
 
             // ServicePackage -> EventType
             modelBuilder.Entity<ServicePackage>()
@@ -171,7 +165,7 @@ namespace Bloomy.Data
                 .HasForeignKey(pi => pi.EventTypeId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-        
+            // Global Query Filter cho User
             modelBuilder.Entity<User>().HasQueryFilter(u => u.IsActive);
         }
     }
