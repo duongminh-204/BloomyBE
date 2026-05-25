@@ -136,7 +136,17 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BloomyDbContext>();
-    try { await db.Database.MigrateAsync(); } catch { /* fallback: seeder tạo bảng nếu thiếu */ }
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        await db.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex,
+            "EF migration failed. Run: dotnet ef database update --project BloomyBE (from solution folder).");
+    }
     await DatabaseSeeder.SeedAsync(db);
     var paymentSettings = scope.ServiceProvider.GetRequiredService<IPaymentSettingsService>();
     await paymentSettings.GetAsync();
