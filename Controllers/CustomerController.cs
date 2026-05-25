@@ -124,12 +124,15 @@ namespace BloomyBE.Controllers
             }
         }
 
-        [HttpPost("concepts/{id:guid}/approve-quote")]
-        public async Task<IActionResult> ApproveConceptQuote(Guid id, [FromBody] ApproveQuoteDto? dto)
+        [HttpPost("concepts/{id}/approve-quote")]
+        public async Task<IActionResult> ApproveConceptQuote(string id, [FromBody] ApproveQuoteDto? dto)
         {
+            if (!Guid.TryParse(id, out var conceptId))
+                return BadRequest(new { message = "Mã concept không hợp lệ." });
+
             try
             {
-                var result = await _orderService.ApproveConceptQuoteAsync(id, GetUserId(), dto?.QuotedAmount);
+                var result = await _orderService.ApproveConceptQuoteAsync(conceptId, GetUserId(), dto?.QuotedAmount);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
