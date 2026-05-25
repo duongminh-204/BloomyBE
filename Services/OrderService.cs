@@ -49,7 +49,11 @@ namespace BloomyBE.Services
                 throw new InvalidOperationException("Concept không thuộc về bạn.");
 
             if (!concept.IsQuoteApproved)
-                throw new InvalidOperationException("Bạn cần xác nhận báo giá concept trước khi đặt lịch.");
+            {
+                if (concept.QuotedAmount <= 0 && dto.TotalAmount > 0)
+                    concept.QuotedAmount = dto.TotalAmount;
+                concept.IsQuoteApproved = true;
+            }
 
             if (!BookingValidator.IsValidServiceArea(dto.Address, dto.District, _settings, out var areaError))
                 throw new InvalidOperationException(areaError);
