@@ -9,6 +9,10 @@ namespace BloomyBE.Data
     {
         public const string DefaultShopOwnerEmail = "owner@bloomy.vn";
         public const string DefaultShopOwnerPassword = "Owner@123";
+
+       public const string DefaultAdminEmail = "admin@bloomy.vn";
+       public const string DefaultAdminPassword = "Admin@123";   
+        
         public static readonly EventType[] DefaultEventTypes =
         [
             new() { Name = "Sinh nhật", Description = "Trang trí tiệc sinh nhật", IconUrl = "" },
@@ -21,7 +25,7 @@ namespace BloomyBE.Data
         public static async Task SeedAsync(BloomyDbContext context)
         {
             await EnsurePaymentSettingsTableAsync(context);
-            await EnsureShopOwnerUserAsync(context);
+            await EnsureDefaultUsersAsync(context);
 
             if (await context.EventTypes.AnyAsync())
                 return;
@@ -30,25 +34,51 @@ namespace BloomyBE.Data
             await context.SaveChangesAsync();
         }
 
-        private static async Task EnsureShopOwnerUserAsync(BloomyDbContext context)
+        private static async Task EnsureDefaultUsersAsync(BloomyDbContext context)
         {
-            if (await context.Users.AnyAsync(u => u.Role == UserRole.ShopOwner))
-                return;
+            
+            var shopOwnerExists = await context.Users
+                .AnyAsync(u => u.Email == DefaultShopOwnerEmail);
 
-            var user = new User
+            if (!shopOwnerExists)
             {
-                FullName = "Chủ tiệm Bloomy",
-                Email = DefaultShopOwnerEmail,
-                PhoneNumber = "0900000001",
-                Role = UserRole.ShopOwner,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(DefaultShopOwnerPassword)
-            };
+                var shopOwner = new User
+                {
+                    FullName = "Chủ tiệm Bloomy",
+                    Email = DefaultShopOwnerEmail,
+                    PhoneNumber = "0900000001",
+                    Role = UserRole.ShopOwner,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(DefaultShopOwnerPassword)
+                };
 
-            await context.Users.AddAsync(user);
+                await context.Users.AddAsync(shopOwner);
+            }
+
+           
+            var adminExists = await context.Users
+                .AnyAsync(u => u.Email == DefaultAdminEmail);
+
+            if (!adminExists)
+            {
+                var admin = new User
+                {
+                    FullName = "Admin Hệ Thống Bloomy",
+                    Email = DefaultAdminEmail,
+                    PhoneNumber = "0333440596",
+                    Role = UserRole.Admin,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(DefaultAdminPassword)
+                };
+
+                await context.Users.AddAsync(admin);
+            }
+
             await context.SaveChangesAsync();
         }
+
 
         private static async Task EnsurePaymentSettingsTableAsync(BloomyDbContext context)
         {
