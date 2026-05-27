@@ -20,6 +20,8 @@ namespace Bloomy.Models
 
         public UserRole Role { get; set; } = UserRole.Customer;
 
+        public string? Avatar { get; set; }
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

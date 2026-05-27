@@ -3,6 +3,7 @@ using Bloomy.Data.Interfaces;
 using Bloomy.Data.Repositories;
 using Bloomy.Models;
 using Bloomy.Services;
+using Bloomy.Hubs;
 using BloomyBE.Configuration;
 using BloomyBE.Data;
 using BloomyBE.Services;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Bloomy.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -104,6 +106,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
+// SignalR for Real-time Chat
+builder.Services.AddSignalR();
+
 // Booking settings
 builder.Services.Configure<BookingSettings>(builder.Configuration.GetSection("BookingSettings"));
 
@@ -113,6 +118,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentSettingsService, PaymentSettingsService>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 // ==================== BUILD & MIDDLEWARE ====================
 var app = builder.Build();
@@ -132,6 +139,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ChatHub>("/api/chathub");
 
 using (var scope = app.Services.CreateScope())
 {
