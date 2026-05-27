@@ -17,6 +17,7 @@ namespace Bloomy.DTOs.Portfolio
         public string Description { get; set; } = string.Empty;
         public int? EventTypeId { get; set; }
         public string EventTypeName { get; set; } = string.Empty;
+        public decimal? Price { get; set; }
         public string CoverImageUrl { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public int ImageCount { get; set; }
@@ -29,6 +30,7 @@ namespace Bloomy.DTOs.Portfolio
         public string Description { get; set; } = string.Empty;
         public int? EventTypeId { get; set; }
         public string EventTypeName { get; set; } = string.Empty;
+        public decimal? Price { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<PortfolioImageDto> Images { get; set; } = new();
     }
@@ -42,6 +44,8 @@ namespace Bloomy.DTOs.Portfolio
         public string Description { get; set; } = string.Empty;
 
         public int? EventTypeId { get; set; }
+
+        public decimal? Price { get; set; }
 
         public List<IFormFile> Images { get; set; } = new();
     }

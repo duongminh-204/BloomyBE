@@ -16,10 +16,8 @@ namespace BloomyBE.Data
         public static readonly EventType[] DefaultEventTypes =
         [
             new() { Name = "Sinh nhật", Description = "Trang trí tiệc sinh nhật", IconUrl = "" },
-            new() { Name = "Tiệc cưới", Description = "Trang trí tiệc cưới, lễ cưới", IconUrl = "" },
             new() { Name = "Khai trương", Description = "Trang trí khai trương, kỷ niệm", IconUrl = "" },
             new() { Name = "Hội nghị", Description = "Trang trí hội nghị, sự kiện doanh nghiệp", IconUrl = "" },
-            new() { Name = "Baby shower", Description = "Trang trí tiệc baby shower", IconUrl = "" },
         ];
 
         public static async Task SeedAsync(BloomyDbContext context)

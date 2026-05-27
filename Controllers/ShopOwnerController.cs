@@ -281,6 +281,7 @@ namespace BloomyBE.Controllers
                 Title = dto.Title.Trim(),
                 Description = dto.Description?.Trim() ?? string.Empty,
                 EventTypeId = dto.EventTypeId,
+                Price = dto.Price ?? 0m,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -322,6 +323,7 @@ namespace BloomyBE.Controllers
             item.Title = dto.Title.Trim();
             item.Description = dto.Description?.Trim() ?? string.Empty;
             item.EventTypeId = dto.EventTypeId;
+            item.Price = dto.Price ?? 0m;
 
             var shouldReplaceImages = dto.Images?.Count > 0;
             if (shouldReplaceImages)
@@ -421,6 +423,7 @@ namespace BloomyBE.Controllers
                 Description = item.Description,
                 EventTypeId = item.EventTypeId,
                 EventTypeName = item.EventType?.Name ?? string.Empty,
+                Price = item.Price,
                 CoverImageUrl = orderedImages.FirstOrDefault()?.ImageUrl ?? string.Empty,
                 CreatedAt = item.CreatedAt,
                 ImageCount = orderedImages.Count
@@ -447,6 +450,7 @@ namespace BloomyBE.Controllers
                 Description = item.Description,
                 EventTypeId = item.EventTypeId,
                 EventTypeName = item.EventType?.Name ?? string.Empty,
+                Price = item.Price,
                 CreatedAt = item.CreatedAt,
                 Images = orderedImages
             };

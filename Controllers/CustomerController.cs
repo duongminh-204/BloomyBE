@@ -5,6 +5,7 @@ using Bloomy.Data.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace BloomyBE.Controllers
 {
@@ -152,16 +153,38 @@ namespace BloomyBE.Controllers
                 Style = dto.Style ?? "",
                 CustomerId = GetUserId(),
                 QuotedAmount = dto.QuotedAmount ?? 0,
+                AiGeneratedData = JsonSerializer.Serialize(new
+                {
+                    coverImageUrl = dto.CoverImageUrl ?? string.Empty
+                }),
                 IsQuoteApproved = false,
                 CreatedAt = DateTime.UtcNow
             };
             var saved = await _orderRepo.CreateConceptAsync(concept);
-            return Ok(new { id = saved.Id, saved.Name, saved.QuotedAmount });
+            return Ok(new { id = saved.Id, saved.Name, saved.QuotedAmount, coverImageUrl = dto.CoverImageUrl ?? string.Empty });
         }
 
         [HttpGet("saved-concepts")]
         public async Task<IActionResult> GetSavedConcepts()
         {
+            static string ExtractCoverImageUrl(string? aiGeneratedData)
+            {
+                if (string.IsNullOrWhiteSpace(aiGeneratedData)) return string.Empty;
+
+                try
+                {
+                    using var doc = JsonDocument.Parse(aiGeneratedData);
+                    if (doc.RootElement.TryGetProperty("coverImageUrl", out var value))
+                        return value.GetString() ?? string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+
+                return string.Empty;
+            }
+
             var list = await _orderRepo.GetConceptsByCustomerAsync(GetUserId());
             return Ok(list.Select(c => new
             {
@@ -169,6 +192,7 @@ namespace BloomyBE.Controllers
                 c.Name,
                 c.Description,
                 c.QuotedAmount,
+                CoverImageUrl = ExtractCoverImageUrl(c.AiGeneratedData),
                 c.IsQuoteApproved,
                 c.CreatedAt
             }));
@@ -193,6 +217,7 @@ namespace BloomyBE.Controllers
         public string? ToneColor { get; set; }
         public string? Style { get; set; }
         public decimal? QuotedAmount { get; set; }
+        public string? CoverImageUrl { get; set; }
     }
 
     public class ApproveQuoteDto

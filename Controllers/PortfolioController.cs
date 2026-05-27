@@ -68,6 +68,7 @@ namespace BloomyBE.Controllers
                 Description = item.Description,
                 EventTypeId = item.EventTypeId,
                 EventTypeName = item.EventType?.Name ?? string.Empty,
+                Price = item.Price,
                 CoverImageUrl = orderedImages.FirstOrDefault()?.ImageUrl ?? string.Empty,
                 CreatedAt = item.CreatedAt,
                 ImageCount = orderedImages.Count
@@ -94,6 +95,7 @@ namespace BloomyBE.Controllers
                 Description = item.Description,
                 EventTypeId = item.EventTypeId,
                 EventTypeName = item.EventType?.Name ?? string.Empty,
+                Price = item.Price,
                 CreatedAt = item.CreatedAt,
                 Images = orderedImages
             };
