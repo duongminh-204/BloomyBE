@@ -11,6 +11,9 @@ using BloomyBE.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Bloomy.Services.Interfaces;
+using Microsoft.AspNetCore.HttpOverrides;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,7 +103,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 Microsoft.AspNetCore.Http.SameSiteMode.None;
 
             options.Cookie.SecurePolicy =
-                Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+      Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
         }
 
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
@@ -136,20 +139,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
-
 // ==================== SIGNALR ====================
-
 builder.Services.AddSignalR();
 
-
 // ==================== CONFIG ====================
-
 builder.Services.Configure<BookingSettings>(
     builder.Configuration.GetSection("BookingSettings"));
 
-
 // ==================== REPOSITORIES ====================
-
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
@@ -161,14 +158,16 @@ builder.Services.AddScoped<IPaymentSettingsService, PaymentSettingsService>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
-
 // ==================== BUILD APP ====================
-
 var app = builder.Build();
-
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto
+});
 
 // ==================== DEVELOPMENT ====================
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -181,35 +180,24 @@ if (app.Environment.IsDevelopment())
 // ==================== MIDDLEWARE ====================
 
 // Production nên bật HTTPS
-app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
+app.UseRouting();
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 
 // ==================== ROUTES ====================
-
 app.MapControllers();
-
 app.MapHub<ChatHub>("/api/chathub");
 
-
 // ==================== DATABASE MIGRATION ====================
-
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<BloomyDbContext>();
-
+   var db = scope.ServiceProvider.GetRequiredService<BloomyDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
     try
-    {
-        await db.Database.MigrateAsync();
+    {       await db.Database.MigrateAsync();
 
         logger.LogInformation("Database migrations applied successfully.");
     }
@@ -220,13 +208,9 @@ using (var scope = app.Services.CreateScope())
             "EF migration failed. Run: dotnet ef database update --project BloomyBE"
         );
     }
-
     await DatabaseSeeder.SeedAsync(db);
-
     var paymentSettings =
         scope.ServiceProvider.GetRequiredService<IPaymentSettingsService>();
-
     await paymentSettings.GetAsync();
 }
-
 app.Run();
