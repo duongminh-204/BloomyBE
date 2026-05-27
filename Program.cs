@@ -36,30 +36,33 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
+        if (builder.Environment.IsDevelopment())
         {
-            if (string.IsNullOrWhiteSpace(origin))
-                return false;
+            policy
+                .SetIsOriginAllowed(origin =>
+                {
+                    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                        return false;
 
-            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-                return false;
-
-            // ================= DEVELOPMENT =================
-            if (builder.Environment.IsDevelopment())
-            {
-                return uri.Host is "localhost"
-                    or "127.0.0.1"
-                    || uri.Host.StartsWith("192.168.")
-                    || uri.Host.StartsWith("10.");
-            }
-
-            // ================= PRODUCTION =================
-            return uri.Host.Equals("bloomy-fe.vercel.app")
-                || uri.Host.Contains("vercel.app");
-        })
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+                    return uri.Host is "localhost"
+                        or "127.0.0.1"
+                        || uri.Host.StartsWith("192.168.")
+                        || uri.Host.StartsWith("10.");
+                })
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+        else
+        {
+            policy
+                .WithOrigins(
+                    "https://bloomy-fe.vercel.app"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
     });
 });
 
@@ -103,7 +106,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 Microsoft.AspNetCore.Http.SameSiteMode.None;
 
             options.Cookie.SecurePolicy =
-      Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
+                Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
         }
 
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
