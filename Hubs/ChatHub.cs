@@ -57,8 +57,16 @@ namespace Bloomy.Hubs
         {
             var senderId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (string.IsNullOrEmpty(senderId) || string.IsNullOrEmpty(message))
+            if (string.IsNullOrEmpty(senderId))
             {
+                _logger.LogWarning($"SendMessage called without authentication. ConnectionId: {Context.ConnectionId}");
+                await Clients.Caller.SendAsync("Error", "Bạn chưa đăng nhập");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(message))
+            {
+                await Clients.Caller.SendAsync("Error", "Tin nhắn không được để trống");
                 return;
             }
 
@@ -99,6 +107,8 @@ namespace Bloomy.Hubs
             
             if (string.IsNullOrEmpty(senderId))
             {
+                _logger.LogWarning($"SendMessageWithImage called without authentication. ConnectionId: {Context.ConnectionId}");
+                await Clients.Caller.SendAsync("Error", "Bạn chưa đăng nhập");
                 return;
             }
 
