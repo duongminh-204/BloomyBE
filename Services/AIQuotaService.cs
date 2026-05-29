@@ -38,7 +38,7 @@ namespace BloomyBE.Services
 
         public async Task RecordUsageAsync(Guid userId, AIUsageType type, int tokensUsed = 0, CancellationToken ct = default)
         {
-            await _repo.RecordUsageAsync(new Models.AIUsage
+            await _repo.RecordUsageAsync(new Bloomy.Models.AIUsage
             {
                 UserId = userId,
                 UsageType = type,
