@@ -282,6 +282,10 @@ namespace BloomyBE.Controllers
                 Description = dto.Description?.Trim() ?? string.Empty,
                 EventTypeId = dto.EventTypeId,
                 Price = dto.Price ?? 0m,
+                ToneColor = dto.ToneColor?.Trim() ?? string.Empty,
+                Style = dto.Style?.Trim() ?? string.Empty,
+                Tags = dto.Tags?.Trim() ?? string.Empty,
+                IndoorOutdoor = dto.IndoorOutdoor?.Trim() ?? string.Empty,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -324,6 +328,10 @@ namespace BloomyBE.Controllers
             item.Description = dto.Description?.Trim() ?? string.Empty;
             item.EventTypeId = dto.EventTypeId;
             item.Price = dto.Price ?? 0m;
+            item.ToneColor = dto.ToneColor?.Trim() ?? item.ToneColor;
+            item.Style = dto.Style?.Trim() ?? item.Style;
+            item.Tags = dto.Tags?.Trim() ?? item.Tags;
+            item.IndoorOutdoor = dto.IndoorOutdoor?.Trim() ?? item.IndoorOutdoor;
 
             var shouldReplaceImages = dto.Images?.Count > 0;
             if (shouldReplaceImages)
@@ -424,6 +432,10 @@ namespace BloomyBE.Controllers
                 EventTypeId = item.EventTypeId,
                 EventTypeName = item.EventType?.Name ?? string.Empty,
                 Price = item.Price,
+                ToneColor = item.ToneColor,
+                Style = item.Style,
+                Tags = item.Tags,
+                IndoorOutdoor = item.IndoorOutdoor,
                 CoverImageUrl = orderedImages.FirstOrDefault()?.ImageUrl ?? string.Empty,
                 CreatedAt = item.CreatedAt,
                 ImageCount = orderedImages.Count
@@ -451,6 +463,10 @@ namespace BloomyBE.Controllers
                 EventTypeId = item.EventTypeId,
                 EventTypeName = item.EventType?.Name ?? string.Empty,
                 Price = item.Price,
+                ToneColor = item.ToneColor,
+                Style = item.Style,
+                Tags = item.Tags,
+                IndoorOutdoor = item.IndoorOutdoor,
                 CreatedAt = item.CreatedAt,
                 Images = orderedImages
             };

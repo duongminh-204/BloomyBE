@@ -6,8 +6,12 @@ using Bloomy.Services;
 using Bloomy.Hubs;
 using BloomyBE.Configuration;
 using BloomyBE.Data;
+using BloomyBE.Hubs;
+using BloomyBE.Repositories;
+using BloomyBE.Repositories.Interfaces;
 using BloomyBE.Services;
 using BloomyBE.Services.Interfaces;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Bloomy.Services.Interfaces;
@@ -125,6 +129,28 @@ builder.Services.AddSignalR();
 builder.Services.Configure<BookingSettings>(
     builder.Configuration.GetSection("BookingSettings"));
 
+builder.Services.Configure<GeminiSettings>(
+    builder.Configuration.GetSection("Gemini"));
+
+builder.Services.AddMemoryCache();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("ai", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 5,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 // ==================== REPOSITORIES ====================
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -136,6 +162,11 @@ builder.Services.AddScoped<IPaymentSettingsService, PaymentSettingsService>();
 
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
+
+builder.Services.AddScoped<IAIRepository, AIRepository>();
+builder.Services.AddScoped<IAIQuotaService, AIQuotaService>();
+builder.Services.AddScoped<IAIService, AIService>();
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 
 // ==================== BUILD APP ====================
 var app = builder.Build();
@@ -164,11 +195,13 @@ app.UseRouting();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 
 // ==================== ROUTES ====================
 app.MapControllers();
 app.MapHub<ChatHub>("/api/chathub");
+app.MapHub<AIHub>("/api/aihub");
 
 // ==================== DATABASE MIGRATION ====================
 using (var scope = app.Services.CreateScope())

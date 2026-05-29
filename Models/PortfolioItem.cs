@@ -12,6 +12,19 @@ namespace Bloomy.Models
 
         public string Description { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string ToneColor { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string Style { get; set; } = string.Empty;
+
+        /// <summary>Comma-separated tags for AI matching: hồng pastel, ngoài trời, luxury...</summary>
+        [MaxLength(500)]
+        public string Tags { get; set; } = string.Empty;
+
+        [MaxLength(50)]
+        public string IndoorOutdoor { get; set; } = string.Empty;
+
         public int? EventTypeId { get; set; }
         public EventType? EventType { get; set; }
 

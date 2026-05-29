@@ -31,5 +31,8 @@ namespace Bloomy.Models
         public ICollection<Order> ManagedOrders { get; set; } = new List<Order>();
         public ICollection<ChatConversation> ConversationsAsCustomer { get; set; } = new List<ChatConversation>();
         public ICollection<ChatConversation> ConversationsAsShopOwner { get; set; } = new List<ChatConversation>();
+        public ICollection<AIConversation> AIConversations { get; set; } = new List<AIConversation>();
+        public ICollection<SavedConcept> SavedConcepts { get; set; } = new List<SavedConcept>();
+        public ICollection<AIUsage> AIUsages { get; set; } = new List<AIUsage>();
     }
 }

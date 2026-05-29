@@ -1,5 +1,6 @@
 ﻿using Bloomy.Models;
 using Bloomy.Models.Enums;
+using BloomyBE.Data.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bloomy.Data
@@ -24,6 +25,10 @@ namespace Bloomy.Data
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<BrandSetting> BrandSettings { get; set; }
         public DbSet<PaymentSetting> PaymentSettings { get; set; }
+        public DbSet<AIConversation> AIConversations { get; set; }
+        public DbSet<AIMessage> AIMessages { get; set; }
+        public DbSet<SavedConcept> SavedConcepts { get; set; }
+        public DbSet<AIUsage> AIUsages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -167,6 +172,12 @@ namespace Bloomy.Data
                 .WithMany()
                 .HasForeignKey(pi => pi.EventTypeId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // AI entities
+            modelBuilder.ApplyConfiguration(new AIConversationConfiguration());
+            modelBuilder.ApplyConfiguration(new AIMessageConfiguration());
+            modelBuilder.ApplyConfiguration(new SavedConceptConfiguration());
+            modelBuilder.ApplyConfiguration(new AIUsageConfiguration());
 
             // Global Query Filter cho User
             modelBuilder.Entity<User>().HasQueryFilter(u => u.IsActive);
