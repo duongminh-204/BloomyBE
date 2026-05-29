@@ -8,10 +8,12 @@ using BloomyBE.Configuration;
 using BloomyBE.Data;
 using BloomyBE.Services;
 using BloomyBE.Services.Interfaces;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Bloomy.Services.Interfaces;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 
@@ -58,8 +60,7 @@ builder.Services.AddCors(options =>
                 || uri.Host.Contains("vercel.app");
         })
         .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+        .AllowAnyMethod();
     });
 });
 
@@ -76,59 +77,30 @@ builder.Services.AddDbContext<BloomyDbContext>(options =>
 });
 
 
-// ==================== COOKIE AUTH ====================
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-.AddCookie(options =>
-{
-    options.LoginPath = "/api/auth/login";
+// ==================== JWT AUTH ====================
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
 
-    options.Cookie.Name = "BloomyAuth";
-    options.Cookie.HttpOnly = true;
-    options.Cookie.Path = "/";
-
-    if (builder.Environment.IsDevelopment())
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-    }
-    else
-    {
-        options.Cookie.SameSite = SameSiteMode.None;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.Domain = ".onrender.com";
-    }
-
-    options.ExpireTimeSpan = TimeSpan.FromDays(7);
-
-    options.Events = new CookieAuthenticationEvents
-    {
-        OnRedirectToLogin = ctx =>
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            if (ctx.Request.Path.StartsWithSegments("/api"))
-            {
-                ctx.Response.StatusCode = 401;
-                return Task.CompletedTask;
-            }
-
-            ctx.Response.Redirect(ctx.RedirectUri);
-            return Task.CompletedTask;
-        },
-
-        OnRedirectToAccessDenied = ctx =>
-        {
-            if (ctx.Request.Path.StartsWithSegments("/api"))
-            {
-                ctx.Response.StatusCode = 403;
-                return Task.CompletedTask;
-            }
-
-            ctx.Response.Redirect(ctx.RedirectUri);
-            return Task.CompletedTask;
-        }
-    };
-});
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtSettings["Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 builder.Services.AddAuthorization();
+
+// ==================== JWT TOKEN SERVICE ====================
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 // ==================== SIGNALR ====================
 builder.Services.AddSignalR();
