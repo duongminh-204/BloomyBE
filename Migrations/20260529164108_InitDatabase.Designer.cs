@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BloomyBE.Migrations
 {
     [DbContext(typeof(BloomyDbContext))]
-    [Migration("20260527103835_AddChatFunctionality")]
-    partial class AddChatFunctionality
+    [Migration("20260529164108_InitDatabase")]
+    partial class InitDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,118 @@ namespace BloomyBE.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Bloomy.Models.AIConversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GatheredRequirementsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SpaceAnalysisJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UploadedSpaceImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AIConversations", (string)null);
+                });
+
+            modelBuilder.Entity("Bloomy.Models.AIMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("MessageType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("AIMessages", (string)null);
+                });
+
+            modelBuilder.Entity("Bloomy.Models.AIUsage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequestCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TokensUsed")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UsageDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UsageType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "UsageType", "UsageDate");
+
+                    b.ToTable("AIUsages", (string)null);
+                });
 
             modelBuilder.Entity("Bloomy.Models.BrandSetting", b =>
                 {
@@ -167,9 +279,6 @@ namespace BloomyBE.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid?>("OrderId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("QuotedAmount")
                         .HasColumnType("decimal(18,2)");
@@ -345,9 +454,7 @@ namespace BloomyBE.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConceptId")
-                        .IsUnique()
-                        .HasFilter("[ConceptId] IS NOT NULL");
+                    b.HasIndex("ConceptId");
 
                     b.HasIndex("CustomerId");
 
@@ -523,13 +630,36 @@ namespace BloomyBE.Migrations
                     b.Property<int?>("EventTypeId")
                         .HasColumnType("int");
 
+                    b.Property<string>("IndoorOutdoor")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<Guid?>("OrderId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Style")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Tags")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ToneColor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -576,6 +706,68 @@ namespace BloomyBE.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("Bloomy.Models.SavedConcept", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConceptDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("EstimatedBudget")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsAiGenerated")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MatchedPortfolioIdsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PreviewImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Style")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ToneColor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SavedConcepts", (string)null);
                 });
 
             modelBuilder.Entity("Bloomy.Models.ServicePackage", b =>
@@ -665,6 +857,39 @@ namespace BloomyBE.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Bloomy.Models.AIConversation", b =>
+                {
+                    b.HasOne("Bloomy.Models.User", "User")
+                        .WithMany("AIConversations")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Bloomy.Models.AIMessage", b =>
+                {
+                    b.HasOne("Bloomy.Models.AIConversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+                });
+
+            modelBuilder.Entity("Bloomy.Models.AIUsage", b =>
+                {
+                    b.HasOne("Bloomy.Models.User", "User")
+                        .WithMany("AIUsages")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Bloomy.Models.ChatConversation", b =>
                 {
                     b.HasOne("Bloomy.Models.User", "Customer")
@@ -730,8 +955,8 @@ namespace BloomyBE.Migrations
             modelBuilder.Entity("Bloomy.Models.Order", b =>
                 {
                     b.HasOne("Bloomy.Models.Concept", "Concept")
-                        .WithOne("Order")
-                        .HasForeignKey("Bloomy.Models.Order", "ConceptId")
+                        .WithMany()
+                        .HasForeignKey("ConceptId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Bloomy.Models.User", "Customer")
@@ -831,6 +1056,24 @@ namespace BloomyBE.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("Bloomy.Models.SavedConcept", b =>
+                {
+                    b.HasOne("Bloomy.Models.AIConversation", "Conversation")
+                        .WithMany("SavedConcepts")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Bloomy.Models.User", "User")
+                        .WithMany("SavedConcepts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Bloomy.Models.ServicePackage", b =>
                 {
                     b.HasOne("Bloomy.Models.EventType", "EventType")
@@ -842,11 +1085,16 @@ namespace BloomyBE.Migrations
                     b.Navigation("EventType");
                 });
 
+            modelBuilder.Entity("Bloomy.Models.AIConversation", b =>
+                {
+                    b.Navigation("Messages");
+
+                    b.Navigation("SavedConcepts");
+                });
+
             modelBuilder.Entity("Bloomy.Models.Concept", b =>
                 {
                     b.Navigation("Images");
-
-                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Bloomy.Models.Order", b =>
@@ -865,6 +1113,10 @@ namespace BloomyBE.Migrations
 
             modelBuilder.Entity("Bloomy.Models.User", b =>
                 {
+                    b.Navigation("AIConversations");
+
+                    b.Navigation("AIUsages");
+
                     b.Navigation("ConversationsAsCustomer");
 
                     b.Navigation("ConversationsAsShopOwner");
@@ -872,6 +1124,8 @@ namespace BloomyBE.Migrations
                     b.Navigation("CustomerOrders");
 
                     b.Navigation("ManagedOrders");
+
+                    b.Navigation("SavedConcepts");
                 });
 #pragma warning restore 612, 618
         }

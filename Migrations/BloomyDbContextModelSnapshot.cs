@@ -22,52 +22,6 @@ namespace BloomyBE.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Bloomy.Models.BrandSetting", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AboutUs")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BannerUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LogoUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ShopName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("BrandSettings", (string)null);
-                });
-
             modelBuilder.Entity("Bloomy.Models.AIConversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -131,11 +85,11 @@ namespace BloomyBE.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("MetadataJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("MessageType")
                         .HasColumnType("int");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Role")
                         .HasColumnType("int");
@@ -164,11 +118,11 @@ namespace BloomyBE.Migrations
                     b.Property<int?>("TokensUsed")
                         .HasColumnType("int");
 
-                    b.Property<int>("UsageType")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("UsageDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("UsageType")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -180,66 +134,50 @@ namespace BloomyBE.Migrations
                     b.ToTable("AIUsages", (string)null);
                 });
 
-            modelBuilder.Entity("Bloomy.Models.SavedConcept", b =>
+            modelBuilder.Entity("Bloomy.Models.BrandSetting", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
 
-                    b.Property<string>("ConceptDataJson")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AboutUs")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("BannerUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("EstimatedBudget")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsAiGenerated")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("MatchedPortfolioIdsJson")
+                    b.Property<string>("Email")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("LogoUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ShopName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("PreviewImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Style")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ToneColor")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("ConversationId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("SavedConcepts", (string)null);
+                    b.ToTable("BrandSettings", (string)null);
                 });
 
             modelBuilder.Entity("Bloomy.Models.ChatConversation", b =>
@@ -767,6 +705,68 @@ namespace BloomyBE.Migrations
                     b.ToTable("Reviews");
                 });
 
+            modelBuilder.Entity("Bloomy.Models.SavedConcept", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConceptDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("EstimatedBudget")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsAiGenerated")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MatchedPortfolioIdsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PreviewImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Style")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ToneColor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SavedConcepts", (string)null);
+                });
+
             modelBuilder.Entity("Bloomy.Models.ServicePackage", b =>
                 {
                     b.Property<int>("Id")
@@ -883,24 +883,6 @@ namespace BloomyBE.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Bloomy.Models.SavedConcept", b =>
-                {
-                    b.HasOne("Bloomy.Models.AIConversation", "Conversation")
-                        .WithMany("SavedConcepts")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Bloomy.Models.User", "User")
-                        .WithMany("SavedConcepts")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
 
                     b.Navigation("User");
                 });
@@ -1069,6 +1051,24 @@ namespace BloomyBE.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Bloomy.Models.SavedConcept", b =>
+                {
+                    b.HasOne("Bloomy.Models.AIConversation", "Conversation")
+                        .WithMany("SavedConcepts")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Bloomy.Models.User", "User")
+                        .WithMany("SavedConcepts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Bloomy.Models.ServicePackage", b =>
