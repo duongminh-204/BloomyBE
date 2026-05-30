@@ -66,7 +66,8 @@ builder.Services.AddCors(options =>
                 || uri.Host.Contains("vercel.app");
         })
         .AllowAnyHeader()
-        .AllowAnyMethod();
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
