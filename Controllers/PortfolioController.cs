@@ -20,13 +20,17 @@ namespace BloomyBE.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] int? eventTypeId = null)
+        public async Task<IActionResult> GetAll([FromQuery] int? eventTypeId = null, [FromQuery] Guid? shopId = null)
         {
             var query = _context.PortfolioItems
                 .AsNoTracking()
                 .Include(x => x.EventType)
                 .Include(x => x.Images)
+                .Include(x => x.Shop)
                 .AsQueryable();
+
+            if (shopId.HasValue)
+                query = query.Where(x => x.ShopId == shopId.Value);
 
             if (eventTypeId.HasValue)
                 query = query.Where(x => x.EventTypeId == eventTypeId.Value);

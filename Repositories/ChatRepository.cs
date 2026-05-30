@@ -13,22 +13,20 @@ namespace Bloomy.Data.Repositories
             _context = context;
         }
 
-        // ==================== CONVERSATION METHODS ====================
-
         public async Task<ChatConversation?> GetConversationAsync(Guid conversationId)
         {
             return await _context.ChatConversations
                 .Include(c => c.Customer)
-                .Include(c => c.ShopOwner)
+                .Include(c => c.Shop)
+                    .ThenInclude(s => s.Owner)
                 .Include(c => c.Order)
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
         }
 
-        public async Task<ChatConversation?> GetOrCreateConversationAsync(Guid customerId, Guid shopOwnerId, Guid? orderId = null)
+        public async Task<ChatConversation?> GetOrCreateConversationAsync(Guid customerId, Guid shopId, Guid? orderId = null)
         {
-            // Tìm conversation hiện có giữa customer và shop owner
             var existingConversation = await _context.ChatConversations
-                .Where(c => c.CustomerId == customerId && c.ShopOwnerId == shopOwnerId)
+                .Where(c => c.CustomerId == customerId && c.ShopId == shopId)
                 .FirstOrDefaultAsync();
 
             if (existingConversation != null)
@@ -38,12 +36,11 @@ namespace Bloomy.Data.Repositories
                 return existingConversation;
             }
 
-            // Tạo conversation mới
             var newConversation = new ChatConversation
             {
                 Id = Guid.NewGuid(),
                 CustomerId = customerId,
-                ShopOwnerId = shopOwnerId,
+                ShopId = shopId,
                 OrderId = orderId,
                 LastMessageAt = DateTime.UtcNow,
                 IsActive = true
@@ -55,15 +52,40 @@ namespace Bloomy.Data.Repositories
             return newConversation;
         }
 
-        public async Task<List<ChatConversation>> GetUserConversationsAsync(Guid userId)
+        public async Task<List<ChatConversation>> GetCustomerConversationsAsync(Guid customerId)
         {
             return await _context.ChatConversations
-                .Where(c => (c.CustomerId == userId || c.ShopOwnerId == userId) && c.IsActive)
+                .Where(c => c.CustomerId == customerId && c.IsActive)
                 .Include(c => c.Customer)
-                .Include(c => c.ShopOwner)
+                .Include(c => c.Shop)
+                    .ThenInclude(s => s.Owner)
                 .Include(c => c.Order)
                 .OrderByDescending(c => c.LastMessageAt)
                 .ToListAsync();
+        }
+
+        public async Task<List<ChatConversation>> GetShopConversationsAsync(Guid shopId)
+        {
+            return await _context.ChatConversations
+                .Where(c => c.ShopId == shopId && c.IsActive)
+                .Include(c => c.Customer)
+                .Include(c => c.Shop)
+                    .ThenInclude(s => s.Owner)
+                .Include(c => c.Order)
+                .OrderByDescending(c => c.LastMessageAt)
+                .ToListAsync();
+        }
+
+        public async Task<bool> CanAccessConversationAsync(Guid conversationId, Guid userId, Guid? shopId)
+        {
+            var conversation = await _context.ChatConversations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+            if (conversation == null) return false;
+            if (conversation.CustomerId == userId) return true;
+            if (shopId.HasValue && conversation.ShopId == shopId.Value) return true;
+            return false;
         }
 
         public async Task<ChatConversation> CreateConversationAsync(ChatConversation conversation)
@@ -79,14 +101,11 @@ namespace Bloomy.Data.Repositories
             await _context.SaveChangesAsync();
         }
 
-        // ==================== MESSAGE METHODS ====================
-
         public async Task<ChatMessage> AddMessageAsync(ChatMessage message)
         {
             _context.ChatMessages.Add(message);
             await _context.SaveChangesAsync();
 
-            // Update LastMessageAt in conversation
             var conversation = await _context.ChatConversations.FindAsync(message.ConversationId);
             if (conversation != null)
             {
@@ -94,7 +113,6 @@ namespace Bloomy.Data.Repositories
                 await _context.SaveChangesAsync();
             }
 
-            // Load sender info
             await _context.Entry(message).Reference(m => m.Sender).LoadAsync();
 
             return message;
@@ -137,9 +155,7 @@ namespace Bloomy.Data.Repositories
                 .ToListAsync();
 
             foreach (var message in messages)
-            {
                 message.IsRead = true;
-            }
 
             await _context.SaveChangesAsync();
         }

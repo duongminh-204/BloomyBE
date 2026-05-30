@@ -164,6 +164,10 @@ builder.Services.AddScoped<IPaymentSettingsService, PaymentSettingsService>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentShopContext, CurrentShopContext>();
+
+builder.Services.AddScoped<IShopRepository, ShopRepository>();
 builder.Services.AddScoped<IAIRepository, AIRepository>();
 builder.Services.AddScoped<IAIQuotaService, AIQuotaService>();
 builder.Services.AddScoped<IAIService, AIService>();

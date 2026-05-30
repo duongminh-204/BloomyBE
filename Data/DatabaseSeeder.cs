@@ -10,9 +10,9 @@ namespace BloomyBE.Data
         public const string DefaultShopOwnerEmail = "owner@bloomy.vn";
         public const string DefaultShopOwnerPassword = "Owner@123";
 
-       public const string DefaultAdminEmail = "admin@bloomy.vn";
-       public const string DefaultAdminPassword = "Admin@123";   
-        
+        public const string DefaultAdminEmail = "admin@bloomy.vn";
+        public const string DefaultAdminPassword = "Admin@123";
+
         public static readonly EventType[] DefaultEventTypes =
         [
             new() { Name = "Sinh nhật", Description = "Trang trí tiệc sinh nhật", IconUrl = "" },
@@ -24,6 +24,7 @@ namespace BloomyBE.Data
         {
             await EnsurePaymentSettingsTableAsync(context);
             await EnsureDefaultUsersAsync(context);
+            await EnsureDefaultShopAsync(context);
 
             if (await context.EventTypes.AnyAsync())
                 return;
@@ -34,7 +35,6 @@ namespace BloomyBE.Data
 
         private static async Task EnsureDefaultUsersAsync(BloomyDbContext context)
         {
-            
             var shopOwnerExists = await context.Users
                 .AnyAsync(u => u.Email == DefaultShopOwnerEmail);
 
@@ -54,7 +54,6 @@ namespace BloomyBE.Data
                 await context.Users.AddAsync(shopOwner);
             }
 
-           
             var adminExists = await context.Users
                 .AnyAsync(u => u.Email == DefaultAdminEmail);
 
@@ -77,6 +76,41 @@ namespace BloomyBE.Data
             await context.SaveChangesAsync();
         }
 
+        private static async Task EnsureDefaultShopAsync(BloomyDbContext context)
+        {
+            var owner = await context.Users
+                .FirstOrDefaultAsync(u => u.Email == DefaultShopOwnerEmail && u.Role == UserRole.ShopOwner);
+
+            if (owner == null) return;
+
+            var shopExists = await context.Shops.AnyAsync(s => s.OwnerId == owner.Id);
+            if (shopExists) return;
+
+            var shop = new Shop
+            {
+                Id = Guid.NewGuid(),
+                Name = "Bloomy Decor Studio",
+                Description = "Studio trang trí sự kiện tone pastel & luxury tại Hà Nội",
+                LogoUrl = "",
+                Address = "Sơn Tây, Hà Nội",
+                PhoneNumber = "0900000001",
+                OwnerId = owner.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await context.Shops.AddAsync(shop);
+            await context.SaveChangesAsync();
+
+            // Gán portfolio hiện có (chưa có shop) cho shop mặc định
+            var orphanPortfolios = await context.PortfolioItems
+                .Where(p => p.ShopId == null)
+                .ToListAsync();
+
+            foreach (var item in orphanPortfolios)
+                item.ShopId = shop.Id;
+
+            await context.SaveChangesAsync();
+        }
 
         private static async Task EnsurePaymentSettingsTableAsync(BloomyDbContext context)
         {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Bloomy.Services.Interfaces;
 using Bloomy.DTOs.Chat;
+using BloomyBE.Services.Interfaces;
 using System.Security.Claims;
 
 namespace Bloomy.Controllers
@@ -12,11 +13,13 @@ namespace Bloomy.Controllers
     public class ChatController : ControllerBase
     {
         private readonly IChatService _chatService;
+        private readonly ICurrentShopContext _shopContext;
         private readonly ILogger<ChatController> _logger;
 
-        public ChatController(IChatService chatService, ILogger<ChatController> logger)
+        public ChatController(IChatService chatService, ICurrentShopContext shopContext, ILogger<ChatController> logger)
         {
             _chatService = chatService;
+            _shopContext = shopContext;
             _logger = logger;
         }
 
@@ -38,7 +41,8 @@ namespace Bloomy.Controllers
 
             try
             {
-                var conversations = await _chatService.GetUserConversationsAsync(userId);
+                var shopId = User.IsInRole("ShopOwner") ? _shopContext.ShopId : null;
+                var conversations = await _chatService.GetUserConversationsAsync(userId, shopId);
                 return Ok(conversations);
             }
             catch (Exception ex)
@@ -62,7 +66,8 @@ namespace Bloomy.Controllers
 
             try
             {
-                var conversation = await _chatService.GetConversationDetailAsync(conversationId, userId, page);
+                var shopId = User.IsInRole("ShopOwner") ? _shopContext.ShopId : null;
+                var conversation = await _chatService.GetConversationDetailAsync(conversationId, userId, page, shopId);
                 if (conversation == null)
                     return NotFound();
 
@@ -85,8 +90,8 @@ namespace Bloomy.Controllers
             if (userId == Guid.Empty)
                 return Unauthorized();
 
-            if (dto == null || dto.ShopOwnerId == Guid.Empty)
-                return BadRequest(new { message = "Invalid request" });
+            if (dto == null || dto.ShopId == Guid.Empty)
+                return BadRequest(new { message = "Vui lòng chọn shop để chat." });
 
             try
             {

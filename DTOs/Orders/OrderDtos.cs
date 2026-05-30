@@ -10,6 +10,7 @@ namespace Bloomy.DTOs.Orders
         public string EventName { get; set; } = string.Empty;
         public int? EventTypeId { get; set; }
         public Guid? ConceptId { get; set; }
+        public Guid ShopId { get; set; }
         // Accept eventDate as string (YYYY-MM-DD format) and let service handle parsing
         public string EventDate { get; set; } = string.Empty;
         public string SetupTime { get; set; } = string.Empty;
@@ -94,6 +95,8 @@ namespace Bloomy.DTOs.Orders
         public string? EventTypeName { get; set; }
         public Guid? ConceptId { get; set; }
         public string? ConceptName { get; set; }
+        public Guid? ShopId { get; set; }
+        public string? ShopName { get; set; }
         public DateTime EventDate { get; set; }
         public string SetupTime { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;

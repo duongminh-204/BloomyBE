@@ -17,99 +17,60 @@ namespace Bloomy.Services
             _logger = logger;
             _uploadsDirectory = Path.Combine(environment.WebRootPath, "uploads", "chat");
 
-            // Tạo thư mục nếu chưa tồn tại
             if (!Directory.Exists(_uploadsDirectory))
-            {
                 Directory.CreateDirectory(_uploadsDirectory);
-            }
         }
 
-        // ==================== CONVERSATION METHODS ====================
-
-        public async Task<ChatConversationDto?> GetConversationAsync(Guid conversationId, Guid userId)
+        public async Task<ChatConversationDto?> GetConversationAsync(Guid conversationId, Guid userId, Guid? shopId = null)
         {
+            if (!await _chatRepository.CanAccessConversationAsync(conversationId, userId, shopId))
+                return null;
+
             var conversation = await _chatRepository.GetConversationAsync(conversationId);
-
-            if (conversation == null)
-                return null;
-
-            // Kiểm tra user có quyền truy cập conversation này không
-            if (conversation.CustomerId != userId && conversation.ShopOwnerId != userId)
-                return null;
+            if (conversation == null) return null;
 
             var unreadCount = await _chatRepository.GetUnreadMessageCountAsync(conversationId, userId);
-
-            return new ChatConversationDto
-            {
-                Id = conversation.Id,
-                CustomerId = conversation.CustomerId,
-                ShopOwnerId = conversation.ShopOwnerId,
-                CustomerName = conversation.Customer?.FullName ?? "Unknown",
-                ShopOwnerName = conversation.ShopOwner?.FullName ?? "Unknown",
-                CustomerAvatar = conversation.Customer?.Avatar,
-                ShopOwnerAvatar = conversation.ShopOwner?.Avatar,
-                OrderId = conversation.OrderId,
-                OrderTitle = conversation.Order?.EventName,
-                LastMessageAt = conversation.LastMessageAt,
-                UnreadCount = unreadCount,
-                IsActive = conversation.IsActive
-            };
+            return MapConversation(conversation, unreadCount);
         }
 
-        public async Task<List<ChatConversationDto>> GetUserConversationsAsync(Guid userId)
+        public async Task<List<ChatConversationDto>> GetUserConversationsAsync(Guid userId, Guid? shopId = null)
         {
-            var conversations = await _chatRepository.GetUserConversationsAsync(userId);
-            var result = new List<ChatConversationDto>();
+            var conversations = shopId.HasValue
+                ? await _chatRepository.GetShopConversationsAsync(shopId.Value)
+                : await _chatRepository.GetCustomerConversationsAsync(userId);
 
+            var result = new List<ChatConversationDto>();
             foreach (var conversation in conversations)
             {
                 var unreadCount = await _chatRepository.GetUnreadMessageCountAsync(conversation.Id, userId);
-                
-                result.Add(new ChatConversationDto
-                {
-                    Id = conversation.Id,
-                    CustomerId = conversation.CustomerId,
-                    ShopOwnerId = conversation.ShopOwnerId,
-                    CustomerName = conversation.Customer?.FullName ?? "Unknown",
-                    ShopOwnerName = conversation.ShopOwner?.FullName ?? "Unknown",
-                    CustomerAvatar = conversation.Customer?.Avatar,
-                    ShopOwnerAvatar = conversation.ShopOwner?.Avatar,
-                    OrderId = conversation.OrderId,
-                    OrderTitle = conversation.Order?.EventName,
-                    LastMessageAt = conversation.LastMessageAt,
-                    UnreadCount = unreadCount,
-                    IsActive = conversation.IsActive
-                });
+                result.Add(MapConversation(conversation, unreadCount));
             }
 
             return result;
         }
 
-        public async Task<ChatConversationDetailDto?> GetConversationDetailAsync(Guid conversationId, Guid userId, int page = 1)
+        public async Task<ChatConversationDetailDto?> GetConversationDetailAsync(Guid conversationId, Guid userId, int page = 1, Guid? shopId = null)
         {
+            if (!await _chatRepository.CanAccessConversationAsync(conversationId, userId, shopId))
+                return null;
+
             var conversation = await _chatRepository.GetConversationAsync(conversationId);
+            if (conversation == null) return null;
 
-            if (conversation == null)
-                return null;
-
-            // Kiểm tra user có quyền truy cập conversation này không
-            if (conversation.CustomerId != userId && conversation.ShopOwnerId != userId)
-                return null;
-
-            // Đánh dấu tất cả tin nhắn là đã đọc
             await _chatRepository.MarkAllConversationMessagesAsReadAsync(conversationId, userId);
-
             var messages = await _chatRepository.GetConversationMessagesAsync(conversationId, pageSize: 50, pageNumber: page);
 
             return new ChatConversationDetailDto
             {
                 Id = conversation.Id,
                 CustomerId = conversation.CustomerId,
-                ShopOwnerId = conversation.ShopOwnerId,
+                ShopId = conversation.ShopId,
+                ShopName = conversation.Shop?.Name ?? string.Empty,
                 CustomerName = conversation.Customer?.FullName ?? "Unknown",
-                ShopOwnerName = conversation.ShopOwner?.FullName ?? "Unknown",
+                ShopOwnerName = conversation.Shop?.Owner?.FullName ?? "Unknown",
                 CustomerAvatar = conversation.Customer?.Avatar,
-                ShopOwnerAvatar = conversation.ShopOwner?.Avatar,
+                ShopOwnerAvatar = conversation.Shop?.Owner?.Avatar,
+                ShopLogoUrl = conversation.Shop?.LogoUrl,
                 OrderId = conversation.OrderId,
                 OrderTitle = conversation.Order?.EventName,
                 Messages = messages.Select(m => new ChatMessageDto
@@ -129,13 +90,15 @@ namespace Bloomy.Services
 
         public async Task<ChatConversationDto> StartConversationAsync(Guid customerId, StartConversationDto dto)
         {
+            if (dto.ShopId == Guid.Empty)
+                throw new InvalidOperationException("Vui lòng chọn shop để chat.");
+
             var conversation = await _chatRepository.GetOrCreateConversationAsync(
                 customerId,
-                dto.ShopOwnerId,
+                dto.ShopId,
                 dto.OrderId
             );
 
-            // Gửi tin nhắn đầu tiên nếu có
             if (!string.IsNullOrEmpty(dto.InitialMessage))
             {
                 await _chatRepository.AddMessageAsync(new ChatMessage
@@ -149,11 +112,9 @@ namespace Bloomy.Services
                 });
             }
 
-            return await GetConversationAsync(conversation.Id, customerId) ?? 
-                   throw new Exception("Failed to get conversation");
+            return await GetConversationAsync(conversation.Id, customerId)
+                ?? throw new InvalidOperationException("Failed to get conversation");
         }
-
-        // ==================== MESSAGE METHODS ====================
 
         public async Task<ChatMessage> SendMessageAsync(Guid conversationId, Guid senderId, string message, string? imageUrl = null)
         {
@@ -171,36 +132,26 @@ namespace Bloomy.Services
             return await _chatRepository.AddMessageAsync(chatMessage);
         }
 
-        public async Task MarkMessageAsReadAsync(Guid messageId)
-        {
-            await _chatRepository.MarkMessageAsReadAsync(messageId);
-        }
+        public Task MarkMessageAsReadAsync(Guid messageId) =>
+            _chatRepository.MarkMessageAsReadAsync(messageId);
 
-        public async Task MarkAllConversationMessagesAsReadAsync(Guid conversationId, Guid userId)
-        {
-            await _chatRepository.MarkAllConversationMessagesAsReadAsync(conversationId, userId);
-        }
+        public Task MarkAllConversationMessagesAsReadAsync(Guid conversationId, Guid userId) =>
+            _chatRepository.MarkAllConversationMessagesAsReadAsync(conversationId, userId);
 
-        public async Task<int> GetUnreadCountAsync(Guid conversationId, Guid userId)
-        {
-            return await _chatRepository.GetUnreadMessageCountAsync(conversationId, userId);
-        }
-
-        // ==================== FILE UPLOAD ====================
+        public Task<int> GetUnreadCountAsync(Guid conversationId, Guid userId) =>
+            _chatRepository.GetUnreadMessageCountAsync(conversationId, userId);
 
         public async Task<string> UploadChatImageAsync(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File is empty");
 
-            // Validate file type
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
             if (!allowedExtensions.Contains(fileExtension))
                 throw new ArgumentException("Invalid file type. Only images are allowed.");
 
-            // Validate file size (max 5MB)
             if (file.Length > 5 * 1024 * 1024)
                 throw new ArgumentException("File size exceeds 5MB limit");
 
@@ -209,10 +160,8 @@ namespace Bloomy.Services
                 var fileName = $"{Guid.NewGuid()}{fileExtension}";
                 var filePath = Path.Combine(_uploadsDirectory, fileName);
 
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
+                await using var stream = new FileStream(filePath, FileMode.Create);
+                await file.CopyToAsync(stream);
 
                 return $"/uploads/chat/{fileName}";
             }
@@ -222,5 +171,24 @@ namespace Bloomy.Services
                 throw;
             }
         }
+
+        private static ChatConversationDto MapConversation(ChatConversation conversation, int unreadCount) =>
+            new()
+            {
+                Id = conversation.Id,
+                CustomerId = conversation.CustomerId,
+                ShopId = conversation.ShopId,
+                ShopName = conversation.Shop?.Name ?? string.Empty,
+                CustomerName = conversation.Customer?.FullName ?? "Unknown",
+                ShopOwnerName = conversation.Shop?.Owner?.FullName ?? "Unknown",
+                CustomerAvatar = conversation.Customer?.Avatar,
+                ShopOwnerAvatar = conversation.Shop?.Owner?.Avatar,
+                ShopLogoUrl = conversation.Shop?.LogoUrl,
+                OrderId = conversation.OrderId,
+                OrderTitle = conversation.Order?.EventName,
+                LastMessageAt = conversation.LastMessageAt,
+                UnreadCount = unreadCount,
+                IsActive = conversation.IsActive
+            };
     }
 }

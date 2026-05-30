@@ -7,8 +7,8 @@
         public Guid CustomerId { get; set; }
         public User Customer { get; set; } = null!;
 
-        public Guid ShopOwnerId { get; set; }
-        public User ShopOwner { get; set; } = null!;
+        public Guid ShopId { get; set; }
+        public Shop Shop { get; set; } = null!;
 
         public Guid? OrderId { get; set; }
         public Order? Order { get; set; }

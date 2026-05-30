@@ -4,6 +4,7 @@ using Bloomy.DTOs.Orders;
 using Bloomy.Data;
 using Bloomy.Models;
 using BloomyBE.Services.Interfaces;
+using BloomyBE.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,43 +23,50 @@ namespace BloomyBE.Controllers
         private readonly IPaymentSettingsService _paymentSettings;
         private readonly BloomyDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly ICurrentShopContext _shopContext;
 
-        public ShopOwnerController(IOrderService orderService, IPaymentSettingsService paymentSettings, BloomyDbContext context, IWebHostEnvironment env)
+        public ShopOwnerController(
+            IOrderService orderService,
+            IPaymentSettingsService paymentSettings,
+            BloomyDbContext context,
+            IWebHostEnvironment env,
+            ICurrentShopContext shopContext)
         {
             _orderService = orderService;
             _paymentSettings = paymentSettings;
             _context = context;
             _env = env;
+            _shopContext = shopContext;
         }
 
-        private Guid GetUserId() =>
-            Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        private Guid GetUserId() => _shopContext.UserId;
+        private Guid GetShopId() => _shopContext.RequireShopId();
 
         [HttpGet("dashboard")]
         public async Task<IActionResult> Dashboard()
         {
-            var data = await _orderService.GetShopOwnerDashboardAsync();
+            var data = await _orderService.GetShopOwnerDashboardAsync(GetShopId());
             return Ok(data);
         }
 
         [HttpGet("requests")]
         public async Task<IActionResult> ViewRequests()
         {
-            var list = await _orderService.GetPendingBookingsAsync();
+            var list = await _orderService.GetPendingBookingsAsync(GetShopId());
             return Ok(list);
         }
 
         [HttpGet("bookings/upcoming")]
         public async Task<IActionResult> UpcomingSetups()
         {
-            var list = await _orderService.GetUpcomingSetupsAsync();
+            var list = await _orderService.GetUpcomingSetupsAsync(GetShopId());
             return Ok(list);
         }
 
         [HttpGet("bookings/managed")]
         public async Task<IActionResult> ManagedBookings()
         {
-            var list = await _orderService.GetManagedBookingsAsync();
+            var list = await _orderService.GetManagedBookingsAsync(GetShopId());
             return Ok(list);
         }
 
@@ -69,7 +77,7 @@ namespace BloomyBE.Controllers
             var end = (to ?? start.AddDays(42)).Date;
             try
             {
-                var events = await _orderService.GetCalendarEventsAsync(start, end);
+                var events = await _orderService.GetCalendarEventsAsync(GetShopId(), start, end);
                 return Ok(events);
             }
             catch (InvalidOperationException ex)
@@ -83,7 +91,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.GetBookingForShopOwnerAsync(id);
+                var result = await _orderService.GetBookingForShopAsync(id, GetShopId());
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -97,7 +105,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.ConfirmBookingAsync(id, GetUserId(), dto);
+                var result = await _orderService.ConfirmBookingAsync(id, GetShopId(), GetUserId(), dto);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -111,7 +119,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.UpdateBookingStatusAsync(id, GetUserId(), dto);
+                var result = await _orderService.UpdateBookingStatusAsync(id, GetShopId(), GetUserId(), dto);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -125,7 +133,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.UpdateInternalNotesAsync(id, GetUserId(), dto);
+                var result = await _orderService.UpdateInternalNotesAsync(id, GetShopId(), GetUserId(), dto);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -139,7 +147,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.ShopOwnerRescheduleAsync(id, GetUserId(), dto);
+                var result = await _orderService.ShopOwnerRescheduleAsync(id, GetShopId(), GetUserId(), dto);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -153,7 +161,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.ResolveRescheduleRequestAsync(id, GetUserId(), dto);
+                var result = await _orderService.ResolveRescheduleRequestAsync(id, GetShopId(), GetUserId(), dto);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -167,7 +175,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.ResolveCancelRequestAsync(id, GetUserId(), dto);
+                var result = await _orderService.ResolveCancelRequestAsync(id, GetShopId(), GetUserId(), dto);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -243,8 +251,10 @@ namespace BloomyBE.Controllers
         [HttpGet("portfolios")]
         public async Task<IActionResult> GetPortfolios([FromQuery] int? eventTypeId = null)
         {
+            var shopId = GetShopId();
             var query = _context.PortfolioItems
                 .AsNoTracking()
+                .Where(x => x.ShopId == shopId)
                 .Include(x => x.EventType)
                 .Include(x => x.Images)
                 .AsQueryable();
@@ -278,6 +288,7 @@ namespace BloomyBE.Controllers
             var item = new PortfolioItem
             {
                 Id = Guid.NewGuid(),
+                ShopId = GetShopId(),
                 Title = dto.Title.Trim(),
                 Description = dto.Description?.Trim() ?? string.Empty,
                 EventTypeId = dto.EventTypeId,
@@ -316,7 +327,7 @@ namespace BloomyBE.Controllers
         {
             var item = await _context.PortfolioItems
                 .Include(x => x.Images)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == id && x.ShopId == GetShopId());
 
             if (item == null)
                 return NotFound(new { message = "Không tìm thấy portfolio." });
@@ -354,7 +365,7 @@ namespace BloomyBE.Controllers
         {
             var item = await _context.PortfolioItems
                 .Include(x => x.Images)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == id && x.ShopId == GetShopId());
 
             if (item == null)
                 return NotFound(new { message = "Không tìm thấy portfolio." });
@@ -374,7 +385,7 @@ namespace BloomyBE.Controllers
                 .AsNoTracking()
                 .Include(x => x.EventType)
                 .Include(x => x.Images)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == id && x.ShopId == GetShopId());
         }
 
         private async Task SavePortfolioImagesAsync(PortfolioItem item, List<IFormFile>? images)
@@ -475,7 +486,7 @@ namespace BloomyBE.Controllers
         [HttpGet("payments/pending")]
         public async Task<IActionResult> PendingPayments()
         {
-            var list = await _orderService.GetPendingPaymentConfirmationsAsync();
+            var list = await _orderService.GetPendingPaymentConfirmationsAsync(GetShopId());
             return Ok(list);
         }
 
@@ -484,7 +495,7 @@ namespace BloomyBE.Controllers
         {
             try
             {
-                var result = await _orderService.ConfirmPaymentAsync(orderId, paymentId, GetUserId());
+                var result = await _orderService.ConfirmPaymentAsync(orderId, paymentId, GetShopId(), GetUserId());
                 return Ok(result);
             }
             catch (InvalidOperationException ex)

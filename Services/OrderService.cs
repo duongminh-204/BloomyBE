@@ -69,7 +69,13 @@ namespace BloomyBE.Services
 
             var setupTime = ParseSetupTime(dto.SetupTime);
 
-            var availability = await CheckAvailabilityAsync(eventDate, setupTime, null);
+            if (dto.ShopId == Guid.Empty)
+                throw new InvalidOperationException("Vui lòng chọn shop để đặt dịch vụ.");
+
+            var shop = await _orderRepo.GetShopAsync(dto.ShopId)
+                ?? throw new InvalidOperationException("Shop không tồn tại.");
+
+            var availability = await CheckAvailabilityAsync(shop.Id, eventDate, setupTime, null);
             if (!availability.IsAvailable)
             {
                 var msg = availability.Message;
@@ -80,7 +86,6 @@ namespace BloomyBE.Services
 
             var eventTypeId = await ResolveEventTypeIdAsync(dto.EventTypeId);
 
-            var shopOwner = await _orderRepo.GetDefaultShopOwnerAsync();
             var totalAmount = dto.TotalAmount > 0 ? dto.TotalAmount : concept.QuotedAmount;
             if (totalAmount <= 0)
                 throw new InvalidOperationException("Báo giá chưa hợp lệ. Vui lòng liên hệ Chủ tiệm.");
@@ -94,7 +99,7 @@ namespace BloomyBE.Services
                 ContactPhone = dto.PhoneNumber.Trim(),
                 ContactEmail = dto.Email.Trim(),
                 CustomerId = customerId,
-                ShopOwnerId = shopOwner?.Id,
+                ShopId = shop.Id,
                 EventTypeId = eventTypeId,
                 ConceptId = dto.ConceptId,
                 EventName = string.IsNullOrWhiteSpace(dto.EventName) ? concept.Name : dto.EventName.Trim(),
@@ -189,7 +194,7 @@ namespace BloomyBE.Services
             return MapPayment(payment);
         }
 
-        public async Task<PaymentDto> ConfirmPaymentAsync(Guid orderId, Guid paymentId, Guid shopOwnerId)
+        public async Task<PaymentDto> ConfirmPaymentAsync(Guid orderId, Guid paymentId, Guid shopId, Guid userId)
         {
             var payment = await _orderRepo.GetPaymentAsync(paymentId)
                 ?? throw new InvalidOperationException("Không tìm thấy giao dịch thanh toán.");
@@ -198,6 +203,9 @@ namespace BloomyBE.Services
                 throw new InvalidOperationException("Giao dịch không thuộc đơn hàng này.");
 
             var order = payment.Order;
+            if (order.ShopId != shopId)
+                throw new InvalidOperationException("Đơn hàng không thuộc shop của bạn.");
+
             if (order.Status != OrderStatus.WaitingDeposit)
                 throw new InvalidOperationException("Đơn không ở trạng thái chờ xác nhận thanh toán.");
 
@@ -208,19 +216,18 @@ namespace BloomyBE.Services
             payment.PaidAt = DateTime.UtcNow;
 
             order.Status = OrderStatus.Confirmed;
-            order.ShopOwnerId = shopOwnerId;
             order.UpdatedAt = DateTime.UtcNow;
 
-            await AddStatusHistoryAsync(order, OrderStatus.Confirmed, shopOwnerId,
+            await AddStatusHistoryAsync(order, OrderStatus.Confirmed, userId,
                 $"Chủ tiệm xác nhận đã nhận đặt cọc {payment.Amount:N0} đ. Mã GD: {payment.TransactionId}");
 
             await _orderRepo.SaveChangesAsync();
             return MapPayment(payment);
         }
 
-        public async Task<List<PendingPaymentOrderDto>> GetPendingPaymentConfirmationsAsync()
+        public async Task<List<PendingPaymentOrderDto>> GetPendingPaymentConfirmationsAsync(Guid shopId)
         {
-            var orders = await _orderRepo.GetOrdersWithPendingPaymentsAsync();
+            var orders = await _orderRepo.GetOrdersWithPendingPaymentsAsync(shopId);
             return orders.Select(o =>
             {
                 var p = o.Payments.First(x => x.Status == "Pending");
@@ -262,7 +269,10 @@ namespace BloomyBE.Services
                 throw new InvalidOperationException(dateError);
 
             var newSetupTime = ParseSetupTime(dto.NewSetupTime);
-            var availability = await CheckAvailabilityAsync(newDate, newSetupTime, order.Id);
+            if (order.ShopId == null)
+                throw new InvalidOperationException("Đơn hàng chưa gắn shop.");
+
+            var availability = await CheckAvailabilityAsync(order.ShopId.Value, newDate, newSetupTime, order.Id);
             if (!availability.IsAvailable)
                 throw new InvalidOperationException(availability.Message);
 
@@ -336,16 +346,16 @@ namespace BloomyBE.Services
             return await MapOrderDtoAsync(order);
         }
 
-        public async Task<ShopOwnerDashboardDto> GetShopOwnerDashboardAsync()
+        public async Task<ShopOwnerDashboardDto> GetShopOwnerDashboardAsync(Guid shopId)
         {
             var today = DateTime.UtcNow.Date;
             var weekStart = today.AddDays(-(int)today.DayOfWeek);
             var monthStart = new DateTime(today.Year, today.Month, 1);
 
-            var pending = await _orderRepo.GetPendingForShopOwnerAsync();
-            var managed = await _orderRepo.GetManagedOrdersAsync();
-            var upcoming = await _orderRepo.GetUpcomingSetupsAsync();
-            var pendingPayments = await GetPendingPaymentConfirmationsAsync();
+            var pending = await _orderRepo.GetPendingForShopAsync(shopId);
+            var managed = await _orderRepo.GetManagedOrdersAsync(shopId);
+            var upcoming = await _orderRepo.GetUpcomingSetupsAsync(shopId);
+            var pendingPayments = await GetPendingPaymentConfirmationsAsync(shopId);
 
             var allRecent = upcoming;
             var todayCount = allRecent.Count(o => o.EventDate.Date == today);
@@ -368,15 +378,15 @@ namespace BloomyBE.Services
             };
         }
 
-        public async Task<List<OrderListItemDto>> GetPendingBookingsAsync()
+        public async Task<List<OrderListItemDto>> GetPendingBookingsAsync(Guid shopId)
         {
-            var orders = await _orderRepo.GetPendingForShopOwnerAsync();
+            var orders = await _orderRepo.GetPendingForShopAsync(shopId);
             return orders.Select(MapListItem).ToList();
         }
 
-        public async Task<OrderDto> ConfirmBookingAsync(Guid orderId, Guid shopOwnerId, ConfirmBookingDto dto)
+        public async Task<OrderDto> ConfirmBookingAsync(Guid orderId, Guid shopId, Guid userId, ConfirmBookingDto dto)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId, includeDetails: true)
+            var order = await _orderRepo.GetByIdForShopAsync(orderId, shopId, includeDetails: true)
                 ?? throw new InvalidOperationException("Không tìm thấy đơn hàng.");
 
             if (order.Status != OrderStatus.PendingConfirmation)
@@ -391,36 +401,32 @@ namespace BloomyBE.Services
                 {
                     RevertRescheduleSnapshot(order);
                     order.Status = order.StatusBeforeRequest!.Value;
-                    order.ShopOwnerId = shopOwnerId;
                     order.UpdatedAt = DateTime.UtcNow;
                     ClearRequestSnapshot(order);
-                    await AddStatusHistoryAsync(order, order.Status, shopOwnerId,
+                    await AddStatusHistoryAsync(order, order.Status, userId,
                         dto.Notes ?? "Chủ tiệm từ chối yêu cầu đổi lịch. Giữ nguyên lịch cũ.");
                 }
                 else
                 {
                     order.Status = OrderStatus.Rejected;
                     order.CancellationReason = dto.Notes ?? "Chủ tiệm từ chối do không đủ nguồn lực thi công.";
-                    order.ShopOwnerId = shopOwnerId;
                     order.UpdatedAt = DateTime.UtcNow;
-                    await AddStatusHistoryAsync(order, OrderStatus.Rejected, shopOwnerId, order.CancellationReason);
+                    await AddStatusHistoryAsync(order, OrderStatus.Rejected, userId, order.CancellationReason);
                 }
             }
             else if (isRescheduleApproval)
             {
                 order.Status = order.StatusBeforeRequest!.Value;
-                order.ShopOwnerId = shopOwnerId;
                 order.UpdatedAt = DateTime.UtcNow;
                 ClearRequestSnapshot(order);
-                await AddStatusHistoryAsync(order, order.Status, shopOwnerId,
+                await AddStatusHistoryAsync(order, order.Status, userId,
                     dto.Notes ?? "Chủ tiệm đã xác nhận lịch mới.");
             }
             else
             {
                 order.Status = OrderStatus.WaitingDeposit;
-                order.ShopOwnerId = shopOwnerId;
                 order.UpdatedAt = DateTime.UtcNow;
-                await AddStatusHistoryAsync(order, OrderStatus.WaitingDeposit, shopOwnerId,
+                await AddStatusHistoryAsync(order, OrderStatus.WaitingDeposit, userId,
                     dto.Notes ?? "Chủ tiệm xác nhận khả năng thi công. Vui lòng thanh toán đặt cọc.");
             }
 
@@ -428,31 +434,30 @@ namespace BloomyBE.Services
             return await MapOrderDtoAsync(order);
         }
 
-        public async Task<OrderDto> UpdateBookingStatusAsync(Guid orderId, Guid shopOwnerId, UpdateBookingStatusDto dto)
+        public async Task<OrderDto> UpdateBookingStatusAsync(Guid orderId, Guid shopId, Guid userId, UpdateBookingStatusDto dto)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId, includeDetails: true)
+            var order = await _orderRepo.GetByIdForShopAsync(orderId, shopId, includeDetails: true)
                 ?? throw new InvalidOperationException("Không tìm thấy đơn hàng.");
 
             ValidateStatusTransition(order.Status, dto.Status);
 
             order.Status = dto.Status;
-            order.ShopOwnerId = shopOwnerId;
             order.UpdatedAt = DateTime.UtcNow;
 
-            await AddStatusHistoryAsync(order, dto.Status, shopOwnerId,
+            await AddStatusHistoryAsync(order, dto.Status, userId,
                 dto.Notes ?? StatusLabels.GetValueOrDefault(dto.Status, dto.Status.ToString()));
 
             await _orderRepo.SaveChangesAsync();
             return await MapOrderDtoAsync(order);
         }
 
-        public async Task<List<OrderListItemDto>> GetUpcomingSetupsAsync()
+        public async Task<List<OrderListItemDto>> GetUpcomingSetupsAsync(Guid shopId)
         {
-            var orders = await _orderRepo.GetUpcomingSetupsAsync();
+            var orders = await _orderRepo.GetUpcomingSetupsAsync(shopId);
             return orders.Select(MapListItem).ToList();
         }
 
-        public async Task ApproveReviewAsync(Guid reviewId, Guid shopOwnerId, bool approved)
+        public async Task ApproveReviewAsync(Guid reviewId, Guid shopId, Guid userId, bool approved)
         {
             await Task.CompletedTask;
         }
@@ -485,25 +490,25 @@ namespace BloomyBE.Services
             };
         }
 
-        public async Task<OrderDto> GetBookingForShopOwnerAsync(Guid orderId)
+        public async Task<OrderDto> GetBookingForShopAsync(Guid orderId, Guid shopId)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId, includeDetails: true)
+            var order = await _orderRepo.GetByIdForShopAsync(orderId, shopId, includeDetails: true)
                 ?? throw new InvalidOperationException("Không tìm thấy đơn hàng.");
             return await MapOrderDtoAsync(order);
         }
 
-        public async Task<List<OrderListItemDto>> GetManagedBookingsAsync()
+        public async Task<List<OrderListItemDto>> GetManagedBookingsAsync(Guid shopId)
         {
-            var orders = await _orderRepo.GetManagedOrdersAsync();
+            var orders = await _orderRepo.GetManagedOrdersAsync(shopId);
             return orders.Select(MapListItem).ToList();
         }
 
-        public async Task<List<CalendarEventDto>> GetCalendarEventsAsync(DateTime from, DateTime to)
+        public async Task<List<CalendarEventDto>> GetCalendarEventsAsync(Guid shopId, DateTime from, DateTime to)
         {
             if (to < from)
                 throw new InvalidOperationException("Khoảng thời gian không hợp lệ.");
 
-            var orders = await _orderRepo.GetCalendarOrdersAsync(from, to);
+            var orders = await _orderRepo.GetCalendarOrdersAsync(shopId, from, to);
             return orders.Select(o => new CalendarEventDto
             {
                 OrderId = o.Id,
@@ -518,21 +523,20 @@ namespace BloomyBE.Services
             }).ToList();
         }
 
-        public async Task<OrderDto> UpdateInternalNotesAsync(Guid orderId, Guid shopOwnerId, UpdateInternalNotesDto dto)
+        public async Task<OrderDto> UpdateInternalNotesAsync(Guid orderId, Guid shopId, Guid userId, UpdateInternalNotesDto dto)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId, includeDetails: true)
+            var order = await _orderRepo.GetByIdForShopAsync(orderId, shopId, includeDetails: true)
                 ?? throw new InvalidOperationException("Không tìm thấy đơn hàng.");
 
             order.InternalNotes = dto.InternalNotes?.Trim() ?? string.Empty;
-            order.ShopOwnerId = shopOwnerId;
             order.UpdatedAt = DateTime.UtcNow;
             await _orderRepo.SaveChangesAsync();
             return await MapOrderDtoAsync(order);
         }
 
-        public async Task<OrderDto> ShopOwnerRescheduleAsync(Guid orderId, Guid shopOwnerId, ShopOwnerRescheduleDto dto)
+        public async Task<OrderDto> ShopOwnerRescheduleAsync(Guid orderId, Guid shopId, Guid userId, ShopOwnerRescheduleDto dto)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId, includeDetails: true)
+            var order = await _orderRepo.GetByIdForShopAsync(orderId, shopId, includeDetails: true)
                 ?? throw new InvalidOperationException("Không tìm thấy đơn hàng.");
 
             if (order.Status is OrderStatus.Completed or OrderStatus.Cancelled or OrderStatus.Rejected)
@@ -547,7 +551,7 @@ namespace BloomyBE.Services
                 throw new InvalidOperationException(dateError);
 
             var newSetupTime = ParseSetupTime(dto.SetupTime);
-            var availability = await CheckAvailabilityAsync(newDate, newSetupTime, order.Id);
+            var availability = await CheckAvailabilityAsync(shopId, newDate, newSetupTime, order.Id);
             if (!availability.IsAvailable)
                 throw new InvalidOperationException(availability.Message);
 
@@ -555,19 +559,18 @@ namespace BloomyBE.Services
             order.SetupTime = newSetupTime;
             order.Address = dto.Address.Trim();
             order.District = dto.District.Trim();
-            order.ShopOwnerId = shopOwnerId;
             order.UpdatedAt = DateTime.UtcNow;
 
-            await AddStatusHistoryAsync(order, order.Status, shopOwnerId,
+            await AddStatusHistoryAsync(order, order.Status, userId,
                 dto.Notes ?? $"Chủ tiệm cập nhật lịch thi công: {newDate:dd/MM/yyyy} {newSetupTime:hh\\:mm}.");
 
             await _orderRepo.SaveChangesAsync();
             return await MapOrderDtoAsync(order);
         }
 
-        public async Task<OrderDto> ResolveRescheduleRequestAsync(Guid orderId, Guid shopOwnerId, HandleCustomerRequestDto dto)
+        public async Task<OrderDto> ResolveRescheduleRequestAsync(Guid orderId, Guid shopId, Guid userId, HandleCustomerRequestDto dto)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId, includeDetails: true)
+            var order = await _orderRepo.GetByIdForShopAsync(orderId, shopId, includeDetails: true)
                 ?? throw new InvalidOperationException("Không tìm thấy đơn hàng.");
 
             if (order.Status != OrderStatus.PendingConfirmation || !order.StatusBeforeRequest.HasValue)
@@ -576,16 +579,16 @@ namespace BloomyBE.Services
             if (!order.Payments.Any(p => p.Status == "Success"))
                 throw new InvalidOperationException("Yêu cầu đổi lịch này dùng chức năng xác nhận đơn thông thường.");
 
-            return await ConfirmBookingAsync(orderId, shopOwnerId, new ConfirmBookingDto
+            return await ConfirmBookingAsync(orderId, shopId, userId, new ConfirmBookingDto
             {
                 Approved = dto.Approved,
                 Notes = dto.Notes
             });
         }
 
-        public async Task<OrderDto> ResolveCancelRequestAsync(Guid orderId, Guid shopOwnerId, HandleCustomerRequestDto dto)
+        public async Task<OrderDto> ResolveCancelRequestAsync(Guid orderId, Guid shopId, Guid userId, HandleCustomerRequestDto dto)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId, includeDetails: true)
+            var order = await _orderRepo.GetByIdForShopAsync(orderId, shopId, includeDetails: true)
                 ?? throw new InvalidOperationException("Không tìm thấy đơn hàng.");
 
             if (order.Status != OrderStatus.CancelRequested)
@@ -596,20 +599,18 @@ namespace BloomyBE.Services
                 var restore = order.StatusBeforeRequest ?? OrderStatus.Confirmed;
                 order.Status = restore;
                 order.CancellationReason = string.Empty;
-                order.ShopOwnerId = shopOwnerId;
                 order.UpdatedAt = DateTime.UtcNow;
                 ClearRequestSnapshot(order);
-                await AddStatusHistoryAsync(order, restore, shopOwnerId,
+                await AddStatusHistoryAsync(order, restore, userId,
                     dto.Notes ?? "Chủ tiệm từ chối yêu cầu hủy đơn. Đơn tiếp tục được xử lý.");
             }
             else
             {
                 var refundNote = GetRefundPolicyNote(order);
                 order.Status = OrderStatus.Cancelled;
-                order.ShopOwnerId = shopOwnerId;
                 order.UpdatedAt = DateTime.UtcNow;
                 ClearRequestSnapshot(order);
-                await AddStatusHistoryAsync(order, OrderStatus.Cancelled, shopOwnerId,
+                await AddStatusHistoryAsync(order, OrderStatus.Cancelled, userId,
                     $"Chủ tiệm xác nhận hủy đơn. {refundNote}. {dto.Notes}".Trim());
             }
 
@@ -672,18 +673,18 @@ namespace BloomyBE.Services
         }
 
         private async Task<(bool IsAvailable, string Message, List<DateTime>? SuggestedDates)> CheckAvailabilityAsync(
-            DateTime eventDate, TimeSpan setupTime, Guid? excludeOrderId)
+            Guid shopId, DateTime eventDate, TimeSpan setupTime, Guid? excludeOrderId)
         {
-            var count = await _orderRepo.CountActiveOrdersOnDateAsync(eventDate, excludeOrderId);
+            var count = await _orderRepo.CountActiveOrdersOnDateAsync(shopId, eventDate, excludeOrderId);
             if (count >= _settings.MaxOrdersPerDay)
             {
-                var suggestions = await GetSuggestedDatesAsync(excludeOrderId, 5);
+                var suggestions = await GetSuggestedDatesAsync(shopId, excludeOrderId, 5);
                 return (false,
                     $"Đã hết lịch cho ngày {eventDate:dd/MM/yyyy} (tối đa {_settings.MaxOrdersPerDay} đơn/ngày).",
                     suggestions);
             }
 
-            var sameDayOrders = await _orderRepo.GetOrdersOnDateAsync(eventDate, excludeOrderId);
+            var sameDayOrders = await _orderRepo.GetOrdersOnDateAsync(shopId, eventDate, excludeOrderId);
             var duration = TimeSpan.FromHours(_settings.SetupDurationHours);
 
             foreach (var existing in sameDayOrders)
@@ -695,7 +696,7 @@ namespace BloomyBE.Services
 
                 if (newStart < existingEnd && newEnd > existingStart)
                 {
-                    var suggestions = await GetSuggestedDatesAsync(excludeOrderId, 5);
+                    var suggestions = await GetSuggestedDatesAsync(shopId, excludeOrderId, 5);
                     return (false,
                         $"Trùng khung giờ setup ({existing.SetupTime:hh\\:mm}). Vui lòng chọn giờ hoặc ngày khác.",
                         suggestions);
@@ -705,14 +706,14 @@ namespace BloomyBE.Services
             return (true, string.Empty, null);
         }
 
-        private async Task<List<DateTime>> GetSuggestedDatesAsync(Guid? excludeOrderId, int count)
+        private async Task<List<DateTime>> GetSuggestedDatesAsync(Guid shopId, Guid? excludeOrderId, int count)
         {
             var suggestions = new List<DateTime>();
             var date = DateTime.UtcNow.Date.AddDays(1);
 
             while (suggestions.Count < count && suggestions.Count < 14)
             {
-                var dayCount = await _orderRepo.CountActiveOrdersOnDateAsync(date, excludeOrderId);
+                var dayCount = await _orderRepo.CountActiveOrdersOnDateAsync(shopId, date, excludeOrderId);
                 if (dayCount < _settings.MaxOrdersPerDay)
                     suggestions.Add(date);
                 date = date.AddDays(1);
@@ -772,6 +773,8 @@ namespace BloomyBE.Services
                 EventTypeName = order.EventType?.Name,
                 ConceptId = order.ConceptId,
                 ConceptName = order.Concept?.Name,
+                ShopId = order.ShopId,
+                ShopName = order.Shop?.Name,
                 EventDate = order.EventDate,
                 SetupTime = order.SetupTime.ToString(@"hh\:mm"),
                 Address = order.Address,

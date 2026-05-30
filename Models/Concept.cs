@@ -16,6 +16,10 @@ namespace Bloomy.Models
 
         public Guid? CustomerId { get; set; }
         public User? Customer { get; set; }
+
+        public Guid? ShopId { get; set; }
+        public Shop? Shop { get; set; }
+
         public bool IsTemplate { get; set; } = false;
 
         [Column(TypeName = "decimal(18,2)")]

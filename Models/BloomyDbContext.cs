@@ -11,6 +11,7 @@ namespace Bloomy.Data
 
         // DbSets
         public DbSet<User> Users { get; set; }
+        public DbSet<Shop> Shops { get; set; }
         public DbSet<EventType> EventTypes { get; set; }
         public DbSet<ServicePackage> ServicePackages { get; set; }
         public DbSet<Concept> Concepts { get; set; }
@@ -67,12 +68,36 @@ namespace Bloomy.Data
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
 
-            // User -> Order (ShopOwner)
+            // Shop -> Order
             modelBuilder.Entity<Order>()
-                .HasOne(o => o.ShopOwner)
-                .WithMany(u => u.ManagedOrders)
-                .HasForeignKey(o => o.ShopOwnerId)
+                .HasOne(o => o.Shop)
+                .WithMany(s => s.Orders)
+                .HasForeignKey(o => o.ShopId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            // Shop -> Concept
+            modelBuilder.Entity<Concept>()
+                .HasOne(c => c.Shop)
+                .WithMany(s => s.Concepts)
+                .HasForeignKey(c => c.ShopId)
                 .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            // Shop -> PortfolioItem
+            modelBuilder.Entity<PortfolioItem>()
+                .HasOne(p => p.Shop)
+                .WithMany(s => s.PortfolioItems)
+                .HasForeignKey(p => p.ShopId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            // Shop -> ServicePackage
+            modelBuilder.Entity<ServicePackage>()
+                .HasOne(sp => sp.Shop)
+                .WithMany(s => s.ServicePackages)
+                .HasForeignKey(sp => sp.ShopId)
+                .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
 
             // OrderStatusHistory
@@ -133,9 +158,9 @@ namespace Bloomy.Data
                 .IsRequired(false);
 
             modelBuilder.Entity<ChatConversation>()
-                .HasOne(cc => cc.ShopOwner)
-                .WithMany(u => u.ConversationsAsShopOwner)
-                .HasForeignKey(cc => cc.ShopOwnerId)
+                .HasOne(cc => cc.Shop)
+                .WithMany(s => s.ChatConversations)
+                .HasForeignKey(cc => cc.ShopId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
 
@@ -174,6 +199,7 @@ namespace Bloomy.Data
                 .OnDelete(DeleteBehavior.SetNull);
 
             // AI entities
+            modelBuilder.ApplyConfiguration(new ShopConfiguration());
             modelBuilder.ApplyConfiguration(new AIConversationConfiguration());
             modelBuilder.ApplyConfiguration(new AIMessageConfiguration());
             modelBuilder.ApplyConfiguration(new SavedConceptConfiguration());

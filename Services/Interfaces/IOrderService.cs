@@ -12,21 +12,21 @@ namespace BloomyBE.Services.Interfaces
         Task<OrderDto> RescheduleBookingAsync(Guid orderId, Guid customerId, RescheduleBookingDto dto);
         Task<OrderDto> CancelBookingAsync(Guid orderId, Guid customerId, CancelBookingDto dto);
         Task<OrderDto> SubmitReviewAsync(Guid orderId, Guid customerId, SubmitReviewDto dto);
-        Task<ShopOwnerDashboardDto> GetShopOwnerDashboardAsync();
-        Task<List<OrderListItemDto>> GetPendingBookingsAsync();
-        Task<OrderDto> ConfirmBookingAsync(Guid orderId, Guid shopOwnerId, ConfirmBookingDto dto);
-        Task<OrderDto> UpdateBookingStatusAsync(Guid orderId, Guid shopOwnerId, UpdateBookingStatusDto dto);
-        Task<List<OrderListItemDto>> GetUpcomingSetupsAsync();
-        Task ApproveReviewAsync(Guid reviewId, Guid shopOwnerId, bool approved);
+        Task<ShopOwnerDashboardDto> GetShopOwnerDashboardAsync(Guid shopId);
+        Task<List<OrderListItemDto>> GetPendingBookingsAsync(Guid shopId);
+        Task<OrderDto> ConfirmBookingAsync(Guid orderId, Guid shopId, Guid userId, ConfirmBookingDto dto);
+        Task<OrderDto> UpdateBookingStatusAsync(Guid orderId, Guid shopId, Guid userId, UpdateBookingStatusDto dto);
+        Task<List<OrderListItemDto>> GetUpcomingSetupsAsync(Guid shopId);
+        Task ApproveReviewAsync(Guid reviewId, Guid shopId, Guid userId, bool approved);
         Task<object> ApproveConceptQuoteAsync(Guid conceptId, Guid customerId, decimal? quotedAmount);
-        Task<OrderDto> GetBookingForShopOwnerAsync(Guid orderId);
-        Task<PaymentDto> ConfirmPaymentAsync(Guid orderId, Guid paymentId, Guid shopOwnerId);
-        Task<List<PendingPaymentOrderDto>> GetPendingPaymentConfirmationsAsync();
-        Task<List<OrderListItemDto>> GetManagedBookingsAsync();
-        Task<List<CalendarEventDto>> GetCalendarEventsAsync(DateTime from, DateTime to);
-        Task<OrderDto> UpdateInternalNotesAsync(Guid orderId, Guid shopOwnerId, UpdateInternalNotesDto dto);
-        Task<OrderDto> ShopOwnerRescheduleAsync(Guid orderId, Guid shopOwnerId, ShopOwnerRescheduleDto dto);
-        Task<OrderDto> ResolveRescheduleRequestAsync(Guid orderId, Guid shopOwnerId, HandleCustomerRequestDto dto);
-        Task<OrderDto> ResolveCancelRequestAsync(Guid orderId, Guid shopOwnerId, HandleCustomerRequestDto dto);
+        Task<OrderDto> GetBookingForShopAsync(Guid orderId, Guid shopId);
+        Task<PaymentDto> ConfirmPaymentAsync(Guid orderId, Guid paymentId, Guid shopId, Guid userId);
+        Task<List<PendingPaymentOrderDto>> GetPendingPaymentConfirmationsAsync(Guid shopId);
+        Task<List<OrderListItemDto>> GetManagedBookingsAsync(Guid shopId);
+        Task<List<CalendarEventDto>> GetCalendarEventsAsync(Guid shopId, DateTime from, DateTime to);
+        Task<OrderDto> UpdateInternalNotesAsync(Guid orderId, Guid shopId, Guid userId, UpdateInternalNotesDto dto);
+        Task<OrderDto> ShopOwnerRescheduleAsync(Guid orderId, Guid shopId, Guid userId, ShopOwnerRescheduleDto dto);
+        Task<OrderDto> ResolveRescheduleRequestAsync(Guid orderId, Guid shopId, Guid userId, HandleCustomerRequestDto dto);
+        Task<OrderDto> ResolveCancelRequestAsync(Guid orderId, Guid shopId, Guid userId, HandleCustomerRequestDto dto);
     }
 }

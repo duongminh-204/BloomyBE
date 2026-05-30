@@ -10,4 +10,6 @@ public class AuthResponseDto
     public string PhoneNumber { get; set; } = string.Empty;
     public string Token { get; set; } = string.Empty;
     public UserRole Role { get; set; }
+    public Guid? ShopId { get; set; }
+    public string? ShopName { get; set; }
 }

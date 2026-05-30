@@ -13,6 +13,9 @@ namespace Bloomy.Models
         public int EventTypeId { get; set; }
         public EventType EventType { get; set; } = null!;
 
+        public Guid? ShopId { get; set; }
+        public Shop? Shop { get; set; }
+
         [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
 

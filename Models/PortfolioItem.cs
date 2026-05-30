@@ -12,6 +12,9 @@ namespace Bloomy.Models
 
         public string Description { get; set; } = string.Empty;
 
+        public Guid? ShopId { get; set; }
+        public Shop? Shop { get; set; }
+
         [MaxLength(100)]
         public string ToneColor { get; set; } = string.Empty;
 

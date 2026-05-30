@@ -6,9 +6,9 @@ namespace Bloomy.Services.Interfaces
     public interface IChatService
     {
         // Conversation methods
-        Task<ChatConversationDto?> GetConversationAsync(Guid conversationId, Guid userId);
-        Task<List<ChatConversationDto>> GetUserConversationsAsync(Guid userId);
-        Task<ChatConversationDetailDto?> GetConversationDetailAsync(Guid conversationId, Guid userId, int page = 1);
+        Task<ChatConversationDto?> GetConversationAsync(Guid conversationId, Guid userId, Guid? shopId = null);
+        Task<List<ChatConversationDto>> GetUserConversationsAsync(Guid userId, Guid? shopId = null);
+        Task<ChatConversationDetailDto?> GetConversationDetailAsync(Guid conversationId, Guid userId, int page = 1, Guid? shopId = null);
         Task<ChatConversationDto> StartConversationAsync(Guid customerId, StartConversationDto dto);
 
         // Message methods

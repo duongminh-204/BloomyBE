@@ -2,6 +2,7 @@
 using Bloomy.DTOs.Auth;
 using Bloomy.Models;
 using Bloomy.Models.Enums;
+using BloomyBE.Repositories.Interfaces;
 using BloomyBE.Services.Interfaces;
 using BloomyBE.Services;
 
@@ -11,11 +12,13 @@ namespace Bloomy.Services
     {
         private readonly IAuthRepository _authRepo;
         private readonly IJwtTokenService _jwtTokenService;
+        private readonly IShopRepository _shopRepo;
 
-        public AuthService(IAuthRepository authRepo, IJwtTokenService jwtTokenService)
+        public AuthService(IAuthRepository authRepo, IJwtTokenService jwtTokenService, IShopRepository shopRepo)
         {
             _authRepo = authRepo;
             _jwtTokenService = jwtTokenService;
+            _shopRepo = shopRepo;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
@@ -39,7 +42,7 @@ namespace Bloomy.Services
 
             await _authRepo.CreateAsync(user, dto.Password);
 
-            return CreateAuthResponse(user);
+            return await CreateAuthResponse(user);
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -52,16 +55,16 @@ namespace Bloomy.Services
             if (user == null || !await _authRepo.CheckPasswordAsync(user, dto.Password))
                 throw new UnauthorizedAccessException("Email/Số điện thoại hoặc mật khẩu không chính xác.");
 
-            return CreateAuthResponse(user);
+            return await CreateAuthResponse(user);
         }
 
         public async Task<AuthResponseDto?> GetUserProfileAsync(Guid userId)
         {
             var user = await _authRepo.GetByIdAsync(userId);
-            return user == null ? null : CreateAuthResponse(user);
+            return user == null ? null : await CreateAuthResponse(user);
         }
 
-        private AuthResponseDto CreateAuthResponse(User user)
+        private async Task<AuthResponseDto> CreateAuthResponse(User user)
         {
             var role = user.Role switch
             {
@@ -70,7 +73,16 @@ namespace Bloomy.Services
                 _ => "Customer"
             };
 
-            var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.FullName, role);
+            Guid? shopId = null;
+            string? shopName = null;
+            if (user.Role == UserRole.ShopOwner)
+            {
+                var shop = await _shopRepo.GetByOwnerIdAsync(user.Id);
+                shopId = shop?.Id;
+                shopName = shop?.Name;
+            }
+
+            var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.FullName, role, shopId);
 
             return new AuthResponseDto
             {
@@ -79,6 +91,8 @@ namespace Bloomy.Services
                 Email = user.Email ?? "",
                 PhoneNumber = user.PhoneNumber ?? "",
                 Role = user.Role,
+                ShopId = shopId,
+                ShopName = shopName,
                 Token = token
             };
         }
