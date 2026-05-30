@@ -23,8 +23,8 @@ namespace Bloomy.Models
         public Guid CustomerId { get; set; }    
         public User Customer { get; set; } = null!;
 
-        public Guid ShopId { get; set; }
-        public Shop Shop { get; set; } = null!;
+        public Guid? ShopId { get; set; }
+        public Shop? Shop { get; set; } = null!;
 
         public int? EventTypeId { get; set; }
         public EventType? EventType { get; set; }

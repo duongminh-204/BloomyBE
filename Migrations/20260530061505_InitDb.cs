@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BloomyBE.Migrations
 {
     /// <inheritdoc />
-    public partial class InitDatabase : Migration
+    public partial class InitDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -89,30 +89,6 @@ namespace BloomyBE.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ServicePackages",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    EventTypeId = table.Column<int>(type: "int", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DurationHours = table.Column<int>(type: "int", nullable: false),
-                    IncludedItems = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ServicePackages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ServicePackages_EventTypes_EventTypeId",
-                        column: x => x.EventTypeId,
-                        principalTable: "EventTypes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AIConversations",
                 columns: table => new
                 {
@@ -161,29 +137,27 @@ namespace BloomyBE.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Concepts",
+                name: "Shops",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ToneColor = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Style = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    IsTemplate = table.Column<bool>(type: "bit", nullable: false),
-                    QuotedAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    IsQuoteApproved = table.Column<bool>(type: "bit", nullable: false),
-                    AiGeneratedData = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LogoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    OwnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Concepts", x => x.Id);
+                    table.PrimaryKey("PK_Shops", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Concepts_Users_CustomerId",
-                        column: x => x.CustomerId,
+                        name: "FK_Shops_Users_OwnerId",
+                        column: x => x.OwnerId,
                         principalTable: "Users",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -245,6 +219,70 @@ namespace BloomyBE.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Concepts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ToneColor = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Style = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ShopId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    IsTemplate = table.Column<bool>(type: "bit", nullable: false),
+                    QuotedAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    IsQuoteApproved = table.Column<bool>(type: "bit", nullable: false),
+                    AiGeneratedData = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Concepts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Concepts_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Concepts_Users_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ServicePackages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    EventTypeId = table.Column<int>(type: "int", nullable: false),
+                    ShopId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DurationHours = table.Column<int>(type: "int", nullable: false),
+                    IncludedItems = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ServicePackages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ServicePackages_EventTypes_EventTypeId",
+                        column: x => x.EventTypeId,
+                        principalTable: "EventTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ServicePackages_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ConceptImages",
                 columns: table => new
                 {
@@ -275,7 +313,7 @@ namespace BloomyBE.Migrations
                     ContactPhone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ContactEmail = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     CustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ShopOwnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ShopId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     EventTypeId = table.Column<int>(type: "int", nullable: true),
                     ConceptId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     EventName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
@@ -312,17 +350,17 @@ namespace BloomyBE.Migrations
                         principalTable: "EventTypes",
                         principalColumn: "Id");
                     table.ForeignKey(
+                        name: "FK_Orders_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_Orders_Users_CustomerId",
                         column: x => x.CustomerId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_Users_ShopOwnerId",
-                        column: x => x.ShopOwnerId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -331,7 +369,7 @@ namespace BloomyBE.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ShopOwnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ShopId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     LastMessageAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false)
@@ -346,14 +384,14 @@ namespace BloomyBE.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_ChatConversations_Users_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Users",
+                        name: "FK_ChatConversations_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ChatConversations_Users_ShopOwnerId",
-                        column: x => x.ShopOwnerId,
+                        name: "FK_ChatConversations_Users_CustomerId",
+                        column: x => x.CustomerId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -419,6 +457,7 @@ namespace BloomyBE.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ShopId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     ToneColor = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Style = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Tags = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
@@ -442,6 +481,12 @@ namespace BloomyBE.Migrations
                         column: x => x.OrderId,
                         principalTable: "Orders",
                         principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_PortfolioItems_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -559,9 +604,9 @@ namespace BloomyBE.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ChatConversations_ShopOwnerId",
+                name: "IX_ChatConversations_ShopId",
                 table: "ChatConversations",
-                column: "ShopOwnerId");
+                column: "ShopId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ChatMessages_ConversationId",
@@ -584,6 +629,11 @@ namespace BloomyBE.Migrations
                 column: "CustomerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Concepts_ShopId",
+                table: "Concepts",
+                column: "ShopId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Orders_ConceptId",
                 table: "Orders",
                 column: "ConceptId");
@@ -599,9 +649,9 @@ namespace BloomyBE.Migrations
                 column: "EventTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Orders_ShopOwnerId",
+                name: "IX_Orders_ShopId",
                 table: "Orders",
-                column: "ShopOwnerId");
+                column: "ShopId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderStatusHistories_OrderId",
@@ -634,6 +684,11 @@ namespace BloomyBE.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PortfolioItems_ShopId",
+                table: "PortfolioItems",
+                column: "ShopId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Reviews_CustomerId",
                 table: "Reviews",
                 column: "CustomerId");
@@ -662,6 +717,17 @@ namespace BloomyBE.Migrations
                 name: "IX_ServicePackages_EventTypeId",
                 table: "ServicePackages",
                 column: "EventTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServicePackages_ShopId",
+                table: "ServicePackages",
+                column: "ShopId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Shops_OwnerId",
+                table: "Shops",
+                column: "OwnerId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -732,6 +798,9 @@ namespace BloomyBE.Migrations
 
             migrationBuilder.DropTable(
                 name: "EventTypes");
+
+            migrationBuilder.DropTable(
+                name: "Shops");
 
             migrationBuilder.DropTable(
                 name: "Users");

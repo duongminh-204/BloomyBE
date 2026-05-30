@@ -180,50 +180,6 @@ namespace BloomyBE.Migrations
                     b.ToTable("BrandSettings", (string)null);
                 });
 
-            modelBuilder.Entity("Bloomy.Models.Shop", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LogoUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId")
-                        .IsUnique();
-
-                    b.ToTable("Shops");
-                });
-
             modelBuilder.Entity("Bloomy.Models.ChatConversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -483,7 +439,7 @@ namespace BloomyBE.Migrations
                     b.Property<TimeSpan>("SetupTime")
                         .HasColumnType("time");
 
-                    b.Property<Guid>("ShopId")
+                    b.Property<Guid?>("ShopId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Status")
@@ -863,6 +819,50 @@ namespace BloomyBE.Migrations
                     b.ToTable("ServicePackages");
                 });
 
+            modelBuilder.Entity("Bloomy.Models.Shop", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId")
+                        .IsUnique();
+
+                    b.ToTable("Shops", (string)null);
+                });
+
             modelBuilder.Entity("Bloomy.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -961,8 +961,7 @@ namespace BloomyBE.Migrations
                     b.HasOne("Bloomy.Models.Shop", "Shop")
                         .WithMany("ChatConversations")
                         .HasForeignKey("ShopId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Customer");
 
@@ -1035,8 +1034,7 @@ namespace BloomyBE.Migrations
                     b.HasOne("Bloomy.Models.Shop", "Shop")
                         .WithMany("Orders")
                         .HasForeignKey("ShopId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Concept");
 
@@ -1101,7 +1099,7 @@ namespace BloomyBE.Migrations
                     b.HasOne("Bloomy.Models.Shop", "Shop")
                         .WithMany("PortfolioItems")
                         .HasForeignKey("ShopId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("EventType");
 
@@ -1157,7 +1155,7 @@ namespace BloomyBE.Migrations
                     b.HasOne("Bloomy.Models.Shop", "Shop")
                         .WithMany("ServicePackages")
                         .HasForeignKey("ShopId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("EventType");
 

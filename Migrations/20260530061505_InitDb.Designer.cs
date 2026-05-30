@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BloomyBE.Migrations
 {
     [DbContext(typeof(BloomyDbContext))]
-    [Migration("20260529164108_InitDatabase")]
-    partial class InitDatabase
+    [Migration("20260530061505_InitDb")]
+    partial class InitDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -201,7 +201,7 @@ namespace BloomyBE.Migrations
                     b.Property<Guid?>("OrderId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ShopOwnerId")
+                    b.Property<Guid>("ShopId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -210,7 +210,7 @@ namespace BloomyBE.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("ShopOwnerId");
+                    b.HasIndex("ShopId");
 
                     b.ToTable("ChatConversations");
                 });
@@ -283,6 +283,9 @@ namespace BloomyBE.Migrations
                     b.Property<decimal>("QuotedAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("ShopId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Style")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -294,6 +297,8 @@ namespace BloomyBE.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("ShopId");
 
                     b.ToTable("Concepts");
                 });
@@ -437,7 +442,7 @@ namespace BloomyBE.Migrations
                     b.Property<TimeSpan>("SetupTime")
                         .HasColumnType("time");
 
-                    b.Property<Guid?>("ShopOwnerId")
+                    b.Property<Guid?>("ShopId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Status")
@@ -460,7 +465,7 @@ namespace BloomyBE.Migrations
 
                     b.HasIndex("EventTypeId");
 
-                    b.HasIndex("ShopOwnerId");
+                    b.HasIndex("ShopId");
 
                     b.ToTable("Orders");
                 });
@@ -641,6 +646,9 @@ namespace BloomyBE.Migrations
                     b.Property<decimal?>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("ShopId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Style")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -666,6 +674,8 @@ namespace BloomyBE.Migrations
                     b.HasIndex("EventTypeId");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("ShopId");
 
                     b.ToTable("PortfolioItems");
                 });
@@ -800,11 +810,60 @@ namespace BloomyBE.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("ShopId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EventTypeId");
 
+                    b.HasIndex("ShopId");
+
                     b.ToTable("ServicePackages");
+                });
+
+            modelBuilder.Entity("Bloomy.Models.Shop", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId")
+                        .IsUnique();
+
+                    b.ToTable("Shops", (string)null);
                 });
 
             modelBuilder.Entity("Bloomy.Models.User", b =>
@@ -902,16 +961,16 @@ namespace BloomyBE.Migrations
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Bloomy.Models.User", "ShopOwner")
-                        .WithMany("ConversationsAsShopOwner")
-                        .HasForeignKey("ShopOwnerId")
+                    b.HasOne("Bloomy.Models.Shop", "Shop")
+                        .WithMany("ChatConversations")
+                        .HasForeignKey("ShopId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Customer");
 
                     b.Navigation("Order");
 
-                    b.Navigation("ShopOwner");
+                    b.Navigation("Shop");
                 });
 
             modelBuilder.Entity("Bloomy.Models.ChatMessage", b =>
@@ -938,7 +997,14 @@ namespace BloomyBE.Migrations
                         .WithMany()
                         .HasForeignKey("CustomerId");
 
+                    b.HasOne("Bloomy.Models.Shop", "Shop")
+                        .WithMany("Concepts")
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Customer");
+
+                    b.Navigation("Shop");
                 });
 
             modelBuilder.Entity("Bloomy.Models.ConceptImage", b =>
@@ -968,10 +1034,10 @@ namespace BloomyBE.Migrations
                         .WithMany()
                         .HasForeignKey("EventTypeId");
 
-                    b.HasOne("Bloomy.Models.User", "ShopOwner")
-                        .WithMany("ManagedOrders")
-                        .HasForeignKey("ShopOwnerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("Bloomy.Models.Shop", "Shop")
+                        .WithMany("Orders")
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Concept");
 
@@ -979,7 +1045,7 @@ namespace BloomyBE.Migrations
 
                     b.Navigation("EventType");
 
-                    b.Navigation("ShopOwner");
+                    b.Navigation("Shop");
                 });
 
             modelBuilder.Entity("Bloomy.Models.OrderStatusHistory", b =>
@@ -1033,9 +1099,16 @@ namespace BloomyBE.Migrations
                         .WithMany()
                         .HasForeignKey("OrderId");
 
+                    b.HasOne("Bloomy.Models.Shop", "Shop")
+                        .WithMany("PortfolioItems")
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("EventType");
 
                     b.Navigation("Order");
+
+                    b.Navigation("Shop");
                 });
 
             modelBuilder.Entity("Bloomy.Models.Review", b =>
@@ -1082,7 +1155,25 @@ namespace BloomyBE.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Bloomy.Models.Shop", "Shop")
+                        .WithMany("ServicePackages")
+                        .HasForeignKey("ShopId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("EventType");
+
+                    b.Navigation("Shop");
+                });
+
+            modelBuilder.Entity("Bloomy.Models.Shop", b =>
+                {
+                    b.HasOne("Bloomy.Models.User", "Owner")
+                        .WithOne("OwnedShop")
+                        .HasForeignKey("Bloomy.Models.Shop", "OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("Bloomy.Models.AIConversation", b =>
@@ -1111,6 +1202,19 @@ namespace BloomyBE.Migrations
                     b.Navigation("Images");
                 });
 
+            modelBuilder.Entity("Bloomy.Models.Shop", b =>
+                {
+                    b.Navigation("ChatConversations");
+
+                    b.Navigation("Concepts");
+
+                    b.Navigation("Orders");
+
+                    b.Navigation("PortfolioItems");
+
+                    b.Navigation("ServicePackages");
+                });
+
             modelBuilder.Entity("Bloomy.Models.User", b =>
                 {
                     b.Navigation("AIConversations");
@@ -1119,11 +1223,9 @@ namespace BloomyBE.Migrations
 
                     b.Navigation("ConversationsAsCustomer");
 
-                    b.Navigation("ConversationsAsShopOwner");
-
                     b.Navigation("CustomerOrders");
 
-                    b.Navigation("ManagedOrders");
+                    b.Navigation("OwnedShop");
 
                     b.Navigation("SavedConcepts");
                 });
