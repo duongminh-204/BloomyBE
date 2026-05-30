@@ -20,8 +20,8 @@ namespace Bloomy.Models
         [MaxLength(20)]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        public Guid OwnerId { get; set; }
-        public User Owner { get; set; } = null!;
+        public Guid? OwnerId { get; set; }
+        public User? Owner { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -7,8 +7,8 @@ namespace Bloomy.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        public Guid UserId { get; set; }
-        public User User { get; set; } = null!;
+        public Guid? UserId { get; set; }
+        public User? User { get; set; }
 
         [MaxLength(200)]
         public string Title { get; set; } = "Tư vấn decor mới";
