@@ -22,7 +22,7 @@ namespace BloomyBE.Data
 
         public static async Task SeedAsync(BloomyDbContext context)
         {
-            await EnsurePaymentSettingsTableAsync(context);
+            await EnsurePaymentSettingsAsync(context);
             await EnsureDefaultUsersAsync(context);
             await EnsureDefaultShopAsync(context);
 
@@ -112,36 +112,29 @@ namespace BloomyBE.Data
             await context.SaveChangesAsync();
         }
 
-        private static async Task EnsurePaymentSettingsTableAsync(BloomyDbContext context)
+        private static async Task EnsurePaymentSettingsAsync(BloomyDbContext context)
         {
-            await context.Database.ExecuteSqlRawAsync(@"
-        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PaymentSettings')
-        BEGIN
-            CREATE TABLE PaymentSettings (
-                Id int NOT NULL PRIMARY KEY,
-                QrImageUrl nvarchar(max) NOT NULL DEFAULT '',
-                AccountHolderName nvarchar(200) NOT NULL,
-                AccountNumber nvarchar(50) NOT NULL,
-                BankName nvarchar(150) NOT NULL,
-                TransferContentTemplate nvarchar(200) NOT NULL DEFAULT 'BLM DEPOSIT {{OrderCode}}',
-                MomoPhone nvarchar(20) NOT NULL DEFAULT '',
-                EnableMomo bit NOT NULL DEFAULT 1,
-                EnableQrCode bit NOT NULL DEFAULT 1,
-                EnableBankTransfer bit NOT NULL DEFAULT 1,
-                EnableVNPay bit NOT NULL DEFAULT 0,
-                UpdatedAt datetime2 NOT NULL
-            );
+            var exists = await context.PaymentSettings.AnyAsync();
 
-            INSERT INTO PaymentSettings 
-            (Id, QrImageUrl, AccountHolderName, AccountNumber, BankName, 
-             TransferContentTemplate, MomoPhone, EnableMomo, EnableQrCode, 
-             EnableBankTransfer, EnableVNPay, UpdatedAt)
-            VALUES 
-            (1, '', N'CÔNG TY TNHH BLOOMY VIỆT NAM', '19028372615', 
-             N'MB Bank (Ngân hàng Quân Đội)', 
-             'BLM DEPOSIT {{OrderCode}}', 
-             '0987654321', 1, 1, 1, 0, GETUTCDATE());
-        END");
+            if (!exists)
+            {
+                context.PaymentSettings.Add(new PaymentSetting
+                {
+                    Id = 1,
+                    AccountHolderName = "CÔNG TY TNHH BLOOMY VIỆT NAM",
+                    AccountNumber = "19028372615",
+                    BankName = "MB Bank",
+                    TransferContentTemplate = "BLM DEPOSIT {OrderCode}",
+                    MomoPhone = "0987654321",
+                    EnableMomo = true,
+                    EnableQrCode = true,
+                    EnableBankTransfer = true,
+                    EnableVNPay = false,
+                    UpdatedAt = DateTime.UtcNow
+                });
+
+                await context.SaveChangesAsync();
+            }
         }
     }
 }
