@@ -69,7 +69,7 @@ namespace BloomyBE.Data.Configurations
             builder.HasOne(x => x.User)
                 .WithMany(u => u.SavedConcepts)
                 .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(x => x.Conversation)
                 .WithMany(c => c.SavedConcepts)
